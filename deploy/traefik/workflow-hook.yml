@@ -1,0 +1,14 @@
+http:
+  routers:
+    workflow-hook:
+      rule: Host(`workflow-hook.zhangziming.cn`) && Path(`/webhooks/github`)
+      entryPoints:
+        - websecure
+      service: workflow-control-plane
+      tls:
+        certResolver: letsencrypt
+  services:
+    workflow-control-plane:
+      loadBalancer:
+        servers:
+          - url: http://100.64.0.5:8088
