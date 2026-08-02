@@ -1,0 +1,19 @@
+test/deployment-artifact.test.js
+  s_13e1caf6530d13::t_6fa8f0f71686d7 1-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "56626b18ec2026bd5ab005e39d9ebaa0f78aa213",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
