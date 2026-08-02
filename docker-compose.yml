@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: workflow
+      POSTGRES_USER: workflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - workflow_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workflow -d workflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [workflow]
+
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://workflow:${POSTGRES_PASSWORD}@db:5432/workflow
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      DEMO_TOKEN_ALICE: ${DEMO_TOKEN_ALICE}
+      DEMO_TOKEN_BOB: ${DEMO_TOKEN_BOB}
+      DEMO_TOKEN_CAROL: ${DEMO_TOKEN_CAROL}
+      DEMO_TOKEN_DAVE: ${DEMO_TOKEN_DAVE}
+      DEMO_TOKEN_ERIN: ${DEMO_TOKEN_ERIN}
+      DEMO_TOKEN_FRANK: ${DEMO_TOKEN_FRANK}
+      HOST: 0.0.0.0
+      PORT: 8080
+      WEBHOOK_PROCESS_INTERVAL_MS: 1000
+      RECONCILE_INTERVAL_MS: 60000
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8088}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    networks: [workflow]
+
+volumes:
+  workflow_db:
+
+networks:
+  workflow:
+    driver: bridge
