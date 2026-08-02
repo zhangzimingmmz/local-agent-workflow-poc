@@ -97,6 +97,66 @@ export class WorkflowService {
     return this.agentRuns.map(copy)
   }
 
+  createSubtask(parentTaskId, actorId, input, options = {}) {
+    return this.#runCommand('split', parentTaskId, actorId, input, options, () => {
+      const parent = this.#ownedTask(parentTaskId, actorId)
+      if (!['claimed', 'in_progress'].includes(parent.status)) {
+        throw new WorkflowError('INVALID_STATE', `${parentTaskId} is ${parent.status}, not claimed or in progress`)
+      }
+      for (const field of ['id', 'title', 'role', 'reviewerId']) {
+        if (typeof input?.[field] !== 'string' || input[field].trim() === '') {
+          throw new WorkflowError('INVALID_WORK_ITEM', `${field} is required to split a Work Item`)
+        }
+      }
+      if (this.tasks.has(input.id) || this.requirements.has(input.id)) {
+        throw new WorkflowError('DUPLICATE_WORK_ITEM', `Work Item ${input.id} already exists`)
+      }
+      const dependencyIds = [...new Set(input.dependencyIds ?? [])]
+      for (const dependencyId of dependencyIds) {
+        const dependency = this.#task(dependencyId)
+        if (dependency.requirementId !== parent.requirementId) {
+          throw new WorkflowError('INVALID_DEPENDENCY', `${dependencyId} belongs to another Requirement`)
+        }
+      }
+      const reviewer = this.#user(input.reviewerId)
+      if (reviewer.role !== input.role) {
+        throw new WorkflowError('ROLE_MISMATCH', `${reviewer.id} cannot review ${input.role} work`)
+      }
+      const assignee = input.assigneeId ? this.#user(input.assigneeId) : null
+      if (assignee && assignee.role !== input.role) {
+        throw new WorkflowError('ROLE_MISMATCH', `${assignee.id} cannot own ${input.role} work`)
+      }
+      if (assignee?.id === reviewer.id) {
+        throw new WorkflowError('SELF_REVIEW', 'A child Work Item owner cannot be its Reviewer')
+      }
+      const dependenciesSatisfied = dependencyIds.every((id) => (
+        ['accepted', 'integrated'].includes(this.#task(id).status)
+      ))
+      const status = dependenciesSatisfied ? (assignee ? 'claimed' : 'ready') : 'blocked'
+      const child = {
+        id: input.id,
+        title: input.title,
+        organizationId: parent.organizationId,
+        teamId: parent.teamId,
+        projectId: parent.projectId,
+        moduleId: parent.moduleId,
+        requirementId: parent.requirementId,
+        parentId: parent.id,
+        role: input.role,
+        reviewerId: reviewer.id,
+        ownerId: assignee?.id ?? null,
+        dependencyIds,
+        status: 'draft'
+      }
+      this.tasks.set(child.id, child)
+      this.#transition(child, status, 'WorkItemCreated', actorId, {
+        parentWorkItemId: parent.id,
+        assignedOwnerId: child.ownerId
+      }, options.idempotencyKey)
+      return copy(child)
+    })
+  }
+
   getAgentRunForTask(taskId, actorId) {
     const run = this.agentRuns.findLast((candidate) => candidate.taskId === taskId && candidate.actorId === actorId)
     return run ? copy(run) : null

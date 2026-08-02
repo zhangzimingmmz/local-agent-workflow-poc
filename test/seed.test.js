@@ -13,7 +13,7 @@ test('seed creates six virtual accounts, six dependency-linked work items and fi
   assert.deepEqual(seed.users.map((user) => user.role).sort(), ['designer', 'designer', 'developer', 'developer', 'tester', 'tester'].sort())
   assert.equal(seed.users.every((user) => !('token' in user) && /^[a-f0-9]{64}$/.test(user.tokenHash)), true)
   assert.equal(seed.tasks.length, 6)
-  assert.equal(seed.tasks.every((task) => task.parentId === 'REQ-001'), true)
+  assert.equal(seed.tasks.every((task) => task.parentId === null), true)
   assert.deepEqual(seed.organization, { id: 'northstar', name: 'Northstar Labs' })
   assert.deepEqual(seed.team, { id: 'delivery', name: 'Product Delivery' })
   assert.equal(seed.tasks.every((task) => task.organizationId === seed.organization.id && task.teamId === seed.team.id), true)

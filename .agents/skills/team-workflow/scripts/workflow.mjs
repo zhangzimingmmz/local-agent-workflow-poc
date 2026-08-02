@@ -19,6 +19,7 @@ Commands:
   claim <work-item-id>
   start <work-item-id>
   policy <work-item-id>
+  split <parent-work-item-id> --id <id> --title <text> --role <role> --reviewer <account> [--assignee <account>] [--depends-on <id> ...]
   submit <work-item-id> --pr <url> --artifact <kind:path> [--artifact <kind:path> ...]
   review <work-item-id> --accept|--reject --note <text>
 
@@ -97,6 +98,12 @@ function oneOption(args, name) {
   return values[0]
 }
 
+function optionalOption(args, name) {
+  const values = optionValues(args, name)
+  if (values.length > 1) throw new Error(`${name} may be provided at most once`)
+  return values[0]
+}
+
 function artifact(value) {
   const separator = value.indexOf(':')
   if (separator < 1 || separator === value.length - 1) throw new Error(`Invalid artifact ${value}; expected <kind:path>`)
@@ -125,6 +132,19 @@ async function run(argv) {
     if (!id) throw new Error('claim requires a work item ID')
     const body = {}
     result = await request(`/api/v1/tasks/${encodeURIComponent(id)}/claim`, {
+      method: 'POST', body, idempotencyKey: idempotencyKey(command, id, body)
+    })
+  } else if (command === 'split') {
+    if (!id) throw new Error('split requires a parent Work Item ID')
+    const body = {
+      id: oneOption(args, '--id'),
+      title: oneOption(args, '--title'),
+      role: oneOption(args, '--role'),
+      reviewerId: oneOption(args, '--reviewer'),
+      assigneeId: optionalOption(args, '--assignee'),
+      dependencyIds: optionValues(args, '--depends-on')
+    }
+    result = await request(`/api/v1/tasks/${encodeURIComponent(id)}/subtasks`, {
       method: 'POST', body, idempotencyKey: idempotencyKey(command, id, body)
     })
   } else if (command === 'start') {

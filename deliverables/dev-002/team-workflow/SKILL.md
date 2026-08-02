@@ -1,6 +1,6 @@
 ---
 name: team-workflow
-description: Claim, execute, submit, and review role-gated work through the local-agent workflow control plane.
+description: Claim, split, execute, submit, and review role-gated work through the local-agent workflow control plane.
 ---
 
 # Team Workflow
@@ -21,6 +21,10 @@ Use `workflow.mjs`; never print `TEAM_WORKFLOW_TOKEN` or hand-build supported HT
 8. Run `submit <id> --pr <url> --artifact <kind:path>` for every Artifact path.
 
 Report the result as Submitted only. A different configured Reviewer must accept it, and a GitHub-verified merge must integrate it.
+
+## Split owned work
+
+After claiming a parent, use `split <parent-id> --id <child-id> --title <text> --role <role> --reviewer <account> [--assignee <account>] [--depends-on <id>]` only when the human requests decomposition. Parent-child expresses containment; Dependencies express order. Continue an assigned child in that Account's separate session.
 
 ## Role practices
 

@@ -60,6 +60,12 @@ function one(args, name) {
   return result[0]
 }
 
+function optional(args, name) {
+  const result = values(args, name)
+  if (result.length > 1) throw new Error(`${name} may be provided at most once`)
+  return result[0]
+}
+
 function artifacts(args) {
   return values(args, '--artifact').map((entry) => {
     const separator = entry.indexOf(':')
@@ -69,7 +75,7 @@ function artifacts(args) {
 }
 
 function usage() {
-  return 'workflow whoami|list|show|status|policy|claim|start|submit|review [work-item-id]'
+  return 'workflow whoami|list|show|status|policy|claim|split|start|submit|review [work-item-id]'
 }
 
 async function main([command, id, ...args]) {
@@ -84,6 +90,14 @@ async function main([command, id, ...args]) {
   if (command === 'claim') {
     const body = {}
     return request(`/api/v1/tasks/${encoded}/claim`, { method: 'POST', body, key: operationKey(command, id, body) })
+  }
+  if (command === 'split') {
+    const body = {
+      id: one(args, '--id'), title: one(args, '--title'), role: one(args, '--role'),
+      reviewerId: one(args, '--reviewer'), assigneeId: optional(args, '--assignee'),
+      dependencyIds: values(args, '--depends-on')
+    }
+    return request(`/api/v1/tasks/${encoded}/subtasks`, { method: 'POST', body, key: operationKey(command, id, body) })
   }
   if (command === 'start') {
     const body = { agentType: 'codex', repository: repository(), branch: git('branch', '--show-current') }

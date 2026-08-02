@@ -125,6 +125,14 @@ export function buildApp({
     }, { idempotencyKey: request.idempotencyKey })
     return { task: started, agentRun: service.getAgentRunForTask(task.id, request.actor.id) }
   })
+  app.post('/api/v1/tasks/:taskId/subtasks', commandHandlers, async (request) => ({
+    task: await service.createSubtask(
+      request.params.taskId,
+      request.actor.id,
+      asJson(request.body),
+      { idempotencyKey: request.idempotencyKey }
+    )
+  }))
   app.post('/api/v1/tasks/:taskId/submit', commandHandlers, async (request) => ({
     task: await service.submit(request.params.taskId, request.actor.id, asJson(request.body), { idempotencyKey: request.idempotencyKey })
   }))

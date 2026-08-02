@@ -1,6 +1,6 @@
 ---
 name: team-workflow
-description: Claim, execute, submit, and review a tracked work item in the local-agent collaborative delivery PoC.
+description: Claim, split, execute, submit, and review a tracked work item in the local-agent collaborative delivery PoC.
 disable-model-invocation: true
 ---
 
@@ -30,6 +30,16 @@ Require a Git repository connected to the configured public GitHub project. Pres
 6. Run `start <id>` immediately before producing the Artifact. The client reports the current repository and branch; the control plane records a Codex Agent Run with the server-resolved guidance snapshot.
 
 Do not claim multiple Work Items speculatively. A claim makes the human Account the single Accountable Owner.
+
+## Split owned work
+
+Split a Work Item only when the human requests decomposition or Effective Guidance requires it. The parent must already be owned and Claimed or In Progress. Use:
+
+```text
+split <parent-id> --id <child-id> --title <text> --role <role> --reviewer <account> [--assignee <account>] [--depends-on <id> ...]
+```
+
+The child inherits its Organization, Team, Project, Module, and Requirement from the parent. Parent-child expresses containment only; `--depends-on` expresses execution order. The Reviewer and optional assignee must hold the child's role and must be different Accounts. An assigned child with satisfied Dependencies becomes Claimed; an unassigned child becomes Ready; unmet Dependencies keep it Blocked. Continue the child in the assigned Account's separate session after running `show` and `policy` there.
 
 ## Perform role work
 
@@ -74,6 +84,7 @@ After submission, report the Work Item as Submitted. Do not call it Accepted, In
 - `INVALID_EVIDENCE`: fix the branch, commit, PR, or Artifact paths in GitHub, then submit again.
 - Network failure: preserve local work and retry the same command. The client derives a stable idempotency key from non-secret command inputs, and the server scopes it to the authenticated Account, so an identical retry cannot duplicate the state change or event. Do not claim a replacement Work Item.
 - `IDEMPOTENCY_CONFLICT`: do not invent a new key to force the operation. Run `show <id>`, confirm the inputs and current state, then correct the command.
+- `DUPLICATE_WORK_ITEM`, `INVALID_WORK_ITEM`, or `INVALID_DEPENDENCY`: correct the child definition; do not create a replacement ID merely to bypass the rejection.
 
 ## Command reference
 

@@ -25,6 +25,10 @@ class PersistentWorkflowService {
     return this.#enqueue(() => this.domain.start(taskId, actorId, agentRun, options))
   }
 
+  async createSubtask(parentTaskId, actorId, input, options) {
+    return this.#enqueue(() => this.domain.createSubtask(parentTaskId, actorId, input, options))
+  }
+
   async submit(taskId, actorId, evidence, options) {
     return this.#enqueue(() => this.domain.submit(taskId, actorId, evidence, options))
   }
@@ -71,7 +75,8 @@ export async function loadWorkflow({ store, seed, verifier }) {
       tasks: stored.snapshot.tasks.map((task) => ({
         organizationId: seed.organization.id,
         teamId: seed.team.id,
-        ...task
+        ...task,
+        parentId: task.parentId === task.requirementId ? null : task.parentId
       })),
       verifier
     }), store, stored.version)

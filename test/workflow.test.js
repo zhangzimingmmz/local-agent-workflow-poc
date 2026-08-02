@@ -56,6 +56,7 @@ test('a Work Item Owner can split and assign an inherited child Work Item to ano
     actorId: 'alice', taskId: 'DEV-CHILD-001', workItemId: 'DEV-CHILD-001', requirementId: 'REQ-001',
     previousStatus: 'draft', status: 'blocked', outcome: 'succeeded',
     organizationId: 'northstar', teamId: 'delivery', projectId: 'agent-workflow', moduleId: 'workflow-core',
+    roleAssignment: { accountId: 'alice', role: 'designer', scope: 'project', scopeId: 'agent-workflow' },
     parentWorkItemId: 'DES-001', assignedOwnerId: 'carol',
     occurredAt: workflow.listEvents().at(-1).occurredAt
   })

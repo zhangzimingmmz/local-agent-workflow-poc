@@ -21,7 +21,7 @@ export function createSeed(tokens, {
   ]
   const common = {
     organizationId: organization.id, teamId: team.id,
-    requirementId: 'REQ-001', parentId: 'REQ-001', projectId: 'agent-workflow',
+    requirementId: 'REQ-001', parentId: null, projectId: 'agent-workflow',
     moduleId: 'workflow-core', ownerId: null
   }
   const tasks = [
