@@ -11,10 +11,8 @@ function configuration() {
 }
 
 function operationKey(command, id, body = {}) {
-  const { token } = configuration()
-  const account = createHash('sha256').update(token).digest('hex').slice(0, 16)
   const operation = createHash('sha256').update(JSON.stringify({ command, id, body })).digest('hex').slice(0, 24)
-  return `workflow:${account}:${command}:${id}:${operation}`
+  return `workflow:${command}:${id}:${operation}`
 }
 
 async function request(path, { method = 'GET', body, key } = {}) {

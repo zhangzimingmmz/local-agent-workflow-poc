@@ -14,6 +14,15 @@ function signature(value) {
   return JSON.stringify(value)
 }
 
+function commandRecordKey(actorId, idempotencyKey) {
+  return `${actorId}\u0000${idempotencyKey}`
+}
+
+function commandRecordActor(record) {
+  if (record.actorId) return record.actorId
+  try { return JSON.parse(record.signature).actorId } catch { return null }
+}
+
 function elapsed(events, starts, ends) {
   let total = 0
   let samples = 0
@@ -41,7 +50,10 @@ export class WorkflowService {
     this.clock = clock
     this.events = events.map(copy)
     this.agentRuns = agentRuns.map(copy)
-    this.commandRecords = new Map(commandRecords.map((record) => [record.idempotencyKey, copy(record)]))
+    this.commandRecords = new Map(commandRecords.map((record) => {
+      const actorId = commandRecordActor(record)
+      return [actorId ? commandRecordKey(actorId, record.idempotencyKey) : record.idempotencyKey, copy(record)]
+    }))
     this.requirements = new Map(requirements.map((requirement) => [requirement.id, copy(requirement)]))
     this.revision = 0
     for (const task of this.tasks.values()) {
@@ -284,7 +296,7 @@ export class WorkflowService {
     const idempotencyKey = options?.idempotencyKey
     if (!idempotencyKey) return { command, taskId, actorId, idempotencyKey: null }
     const commandSignature = signature({ command, taskId, actorId, payload })
-    const previous = this.commandRecords.get(idempotencyKey)
+    const previous = this.commandRecords.get(commandRecordKey(actorId, idempotencyKey))
     if (!previous) return { command, taskId, actorId, idempotencyKey, commandSignature }
     if (previous.signature !== commandSignature) {
       throw new WorkflowError('IDEMPOTENCY_CONFLICT', `Idempotency key ${idempotencyKey} was already used for another command`)
@@ -301,8 +313,9 @@ export class WorkflowService {
 
   #recordCommand(context, outcome, result, error) {
     if (!context.idempotencyKey) return
-    this.commandRecords.set(context.idempotencyKey, {
+    this.commandRecords.set(commandRecordKey(context.actorId, context.idempotencyKey), {
       idempotencyKey: context.idempotencyKey,
+      actorId: context.actorId,
       signature: context.commandSignature,
       outcome,
       ...(result === undefined ? {} : { result: copy(result) }),

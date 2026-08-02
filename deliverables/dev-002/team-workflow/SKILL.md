@@ -40,4 +40,4 @@ review <id> --reject --note <recovery-action>
 
 ## Recovery
 
-Retry an identical command after a network failure. The CLI derives a stable Account-scoped idempotency key from the token hash and command inputs; it never sends the token hash. On `IDEMPOTENCY_CONFLICT`, `INVALID_STATE`, `INVALID_EVIDENCE`, or an authorization error, inspect current state and correct the cause instead of forcing a transition.
+Retry an identical command after a network failure. The CLI derives a stable idempotency key from non-secret command inputs, and the server scopes that key to the authenticated Account. On `IDEMPOTENCY_CONFLICT`, `INVALID_STATE`, `INVALID_EVIDENCE`, or an authorization error, inspect current state and correct the cause instead of forcing a transition.
