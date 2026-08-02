@@ -1,0 +1,26 @@
+test/workflow.test.js
+  s_13e1caf6530d13::t_652b12bd8d4648 201,204-206
+src/app.js
+  s_13e1caf6530d13::t_652b12bd8d4648 24-27,38-40,47
+src/github-event.js
+  s_13e1caf6530d13::t_652b12bd8d4648 8-10,20-22
+src/workflow.js
+  s_13e1caf6530d13::t_652b12bd8d4648 229,364,371-372,387,393,417-418,423-451
+  s_13e1caf6530d13::t_fd5c234eb095e8 452-453
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "218365ff3d39415be932c497a8c42a89a98d58e0",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
