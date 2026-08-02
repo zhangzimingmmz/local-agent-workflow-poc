@@ -1,0 +1,20 @@
+docs/DEPLOYMENT.md
+  s_13e1caf6530d13::t_2f2ed562454317 7,11,16
+  s_13e1caf6530d13::t_3cc66b9c74c3cf 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "aa300dbf99ad9a083d872252a73866cd6be0d3a8",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
