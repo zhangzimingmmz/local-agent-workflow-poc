@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto'
 
-function account(id, name, role, tokens) {
+function account(id, name, role, workstationId, tokens) {
   const token = tokens[id]
   if (!token) throw new Error(`Missing demo token for ${id}`)
   return {
     id,
     name,
+    workstationId,
     roleAssignments: [{
       id: `ra:${id}:${role}:project:agent-workflow`,
       accountId: id,
@@ -24,12 +25,12 @@ export function createSeed(tokens, {
   const organization = { id: 'northstar', name: 'Northstar Labs' }
   const team = { id: 'delivery', name: 'Product Delivery' }
   const users = [
-    account('alice', 'Alice Product', 'designer', tokens),
-    account('bob', 'Bob Product', 'designer', tokens),
-    account('carol', 'Carol Developer', 'developer', tokens),
-    account('dave', 'Dave Developer', 'developer', tokens),
-    account('erin', 'Erin Tester', 'tester', tokens),
-    account('frank', 'Frank Tester', 'tester', tokens)
+    account('alice', 'Alice Product', 'designer', 'workstation-a', tokens),
+    account('bob', 'Bob Product', 'designer', 'workstation-b', tokens),
+    account('carol', 'Carol Developer', 'developer', 'workstation-a', tokens),
+    account('dave', 'Dave Developer', 'developer', 'workstation-b', tokens),
+    account('erin', 'Erin Tester', 'tester', 'workstation-a', tokens),
+    account('frank', 'Frank Tester', 'tester', 'workstation-b', tokens)
   ]
   const common = {
     organizationId: organization.id, teamId: team.id,

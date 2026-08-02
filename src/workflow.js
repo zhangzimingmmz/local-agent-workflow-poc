@@ -66,6 +66,32 @@ function addDurations(...values) {
   return samples.length === 0 ? null : samples.reduce((total, value) => total + value, 0)
 }
 
+function localAgentSessions(events) {
+  const sessions = new Map()
+  for (const event of events) {
+    if (!event.agentSessionId || ['WORKSTATION_MISMATCH', 'AGENT_SESSION_CONFLICT'].includes(event.reasonCode)) continue
+    const existing = sessions.get(event.agentSessionId)
+    if (existing) {
+      existing.actionIds.add(event.correlationId ?? event.id)
+      existing.lastObservedAt = event.occurredAt
+      continue
+    }
+    sessions.set(event.agentSessionId, {
+      sessionId: event.agentSessionId,
+      actorId: event.actorId,
+      workstationId: event.workstationId,
+      agentType: event.agentType,
+      actionIds: new Set([event.correlationId ?? event.id]),
+      firstObservedAt: event.occurredAt,
+      lastObservedAt: event.occurredAt
+    })
+  }
+  return [...sessions.values()].map(({ actionIds, ...session }) => ({
+    ...session,
+    actions: actionIds.size
+  }))
+}
+
 const ROLE_SCOPE_FIELDS = {
   organization: 'organizationId',
   team: 'teamId',
@@ -209,7 +235,7 @@ export class WorkflowService {
   }
 
   createSubtask(parentTaskId, actorId, input, options = {}) {
-    return this.#runCommand('split', parentTaskId, actorId, input, options, () => {
+    return this.#runCommand('split', parentTaskId, actorId, input, options, (executionContext) => {
       const parent = this.#ownedTask(parentTaskId, actorId)
       if (!['claimed', 'in_progress'].includes(parent.status)) {
         throw new WorkflowError('INVALID_STATE', `${parentTaskId} is ${parent.status}, not claimed or in progress`)
@@ -271,7 +297,7 @@ export class WorkflowService {
       this.#transition(child, status, 'WorkItemCreated', actorId, {
         parentWorkItemId: parent.id,
         assignedOwnerId: child.ownerId
-      }, options.idempotencyKey)
+      }, options.idempotencyKey, executionContext)
       return copy(child)
     })
   }
@@ -300,7 +326,7 @@ export class WorkflowService {
   }
 
   claim(taskId, actorId, options = {}) {
-    return this.#runCommand('claim', taskId, actorId, {}, options, () => {
+    return this.#runCommand('claim', taskId, actorId, {}, options, (executionContext) => {
       const task = this.#task(taskId)
       const actor = this.#user(actorId)
       if (task.status === 'claimed' && task.ownerId === actorId) return copy(task)
@@ -309,13 +335,13 @@ export class WorkflowService {
         throw new WorkflowError('ROLE_MISMATCH', `${actorId} cannot claim ${task.role} work`)
       }
       task.ownerId = actorId
-      this.#transition(task, 'claimed', 'TaskClaimed', actorId, {}, options.idempotencyKey)
+      this.#transition(task, 'claimed', 'TaskClaimed', actorId, {}, options.idempotencyKey, executionContext)
       return copy(task)
     })
   }
 
   start(taskId, actorId, agentRun = {}, options = {}) {
-    return this.#runCommand('start', taskId, actorId, agentRun, options, () => {
+    return this.#runCommand('start', taskId, actorId, agentRun, options, (executionContext) => {
       const task = this.#ownedTask(taskId, actorId)
       if (task.status === 'in_progress') return copy(task)
       if (task.status !== 'claimed') throw new WorkflowError('INVALID_STATE', `${taskId} is ${task.status}, not claimed`)
@@ -323,7 +349,11 @@ export class WorkflowService {
         id: `run-${this.agentRuns.length + 1}`,
         taskId,
         actorId,
-        agentType: agentRun.agentType ?? 'codex',
+        agentType: executionContext?.agentType ?? agentRun.agentType ?? 'codex',
+        ...(executionContext ? {
+          workstationId: executionContext.workstationId,
+          agentSessionId: executionContext.sessionId
+        } : {}),
         repository: agentRun.repository ?? null,
         branch: agentRun.branch ?? null,
         guidanceSnapshot: copy(agentRun.guidanceSnapshot ?? null),
@@ -331,13 +361,16 @@ export class WorkflowService {
       }
       this.agentRuns.push(run)
       this.revision += 1
-      this.#transition(task, 'in_progress', 'TaskStarted', actorId, { agentRunId: run.id }, options.idempotencyKey)
+      this.#transition(
+        task, 'in_progress', 'TaskStarted', actorId,
+        { agentRunId: run.id }, options.idempotencyKey, executionContext
+      )
       return copy(task)
     })
   }
 
   async submit(taskId, actorId, evidence, options = {}) {
-    return this.#runCommandAsync('submit', taskId, actorId, evidence, options, async () => {
+    return this.#runCommandAsync('submit', taskId, actorId, evidence, options, async (executionContext) => {
       const task = this.#ownedTask(taskId, actorId)
       if (task.status !== 'in_progress') throw new WorkflowError('INVALID_STATE', `${taskId} is ${task.status}, not in progress`)
       if (!Array.isArray(evidence?.artifacts) || evidence.artifacts.length === 0) {
@@ -359,13 +392,13 @@ export class WorkflowService {
         evidence: task.evidence,
         agentRunId: run?.id,
         guidanceSnapshot: run?.guidanceSnapshot
-      }, options.idempotencyKey)
+      }, options.idempotencyKey, executionContext)
       return copy(task)
     })
   }
 
   async review(taskId, actorId, decision, note = '', options = {}) {
-    return this.#runCommandAsync('review', taskId, actorId, { decision, note }, options, async () => {
+    return this.#runCommandAsync('review', taskId, actorId, { decision, note }, options, async (executionContext) => {
       const task = this.#task(taskId)
       const actor = this.#user(actorId)
       if (task.ownerId === actorId) throw new WorkflowError('SELF_REVIEW', 'An owner cannot review their own submission')
@@ -377,7 +410,10 @@ export class WorkflowService {
       if (!['accept', 'reject'].includes(decision)) throw new WorkflowError('INVALID_DECISION', `Unknown review decision: ${decision}`)
 
       if (decision === 'reject') {
-        this.#transition(task, 'in_progress', 'TaskRejected', actorId, { note }, options.idempotencyKey)
+        this.#transition(
+          task, 'in_progress', 'TaskRejected', actorId,
+          { note }, options.idempotencyKey, executionContext
+        )
         return copy(task)
       }
 
@@ -394,8 +430,8 @@ export class WorkflowService {
       this.#transition(task, 'accepted', 'TaskAccepted', actorId, {
         note,
         evidenceReverifiedAt: currentEvidence.verifiedAt
-      }, options.idempotencyKey)
-      this.#unblockDependents(actorId, options.idempotencyKey)
+      }, options.idempotencyKey, executionContext)
+      this.#unblockDependents(actorId, options.idempotencyKey, executionContext)
       return copy(task)
     })
   }
@@ -429,6 +465,7 @@ export class WorkflowService {
     )).length
     const accepted = this.events.filter((event) => event.type === 'TaskAccepted').length
     const rejected = this.events.filter((event) => event.type === 'TaskRejected')
+    const agentSessions = localAgentSessions(this.events)
     const reworkByStage = {}
     const reworkByReason = {}
     for (const event of rejected) {
@@ -447,6 +484,7 @@ export class WorkflowService {
       requirements: [...this.requirements.values()].map(copy),
       tasks,
       agentRuns: this.listAgentRuns(),
+      agentSessions,
       events: this.listEvents(),
       metrics: {
         events: this.events.length,
@@ -459,6 +497,11 @@ export class WorkflowService {
         },
         evidenceVerificationRate: submitted + evidenceRejected === 0 ? null : submitted / (submitted + evidenceRejected),
         submissionAcceptanceRate: accepted + rejected.length === 0 ? null : accepted / (accepted + rejected.length),
+        execution: {
+          agentSessions: agentSessions.length,
+          workstations: new Set(agentSessions.map((session) => session.workstationId)).size,
+          accounts: new Set(agentSessions.map((session) => session.actorId)).size
+        },
         rework: { total: rejected.length, byStage: reworkByStage, byReason: reworkByReason }
       }
     }
@@ -490,7 +533,8 @@ export class WorkflowService {
       return context.result
     }
     try {
-      const result = action()
+      this.#validateExecutionContext(actorId, context.executionContext)
+      const result = action(context.executionContext)
       this.#recordCommand(context, 'succeeded', result)
       return result
     } catch (error) {
@@ -506,7 +550,8 @@ export class WorkflowService {
       return context.result
     }
     try {
-      const result = await action()
+      this.#validateExecutionContext(actorId, context.executionContext)
+      const result = await action(context.executionContext)
       this.#recordCommand(context, 'succeeded', result)
       return result
     } catch (error) {
@@ -517,10 +562,14 @@ export class WorkflowService {
 
   #commandContext(command, taskId, actorId, payload, options) {
     const idempotencyKey = options?.idempotencyKey
-    if (!idempotencyKey) return { command, taskId, actorId, idempotencyKey: null }
-    const commandSignature = signature({ command, taskId, actorId, payload })
+    const executionContext = options?.executionContext ? copy(options.executionContext) : null
+    if (!idempotencyKey) return { command, taskId, actorId, idempotencyKey: null, executionContext }
+    const commandSignature = signature({
+      command, taskId, actorId, payload,
+      ...(executionContext ? { executionContext } : {})
+    })
     const previous = this.commandRecords.get(commandRecordKey(actorId, idempotencyKey))
-    if (!previous) return { command, taskId, actorId, idempotencyKey, commandSignature }
+    if (!previous) return { command, taskId, actorId, idempotencyKey, commandSignature, executionContext }
     if (previous.signature !== commandSignature) {
       throw new WorkflowError('IDEMPOTENCY_CONFLICT', `Idempotency key ${idempotencyKey} was already used for another command`)
     }
@@ -528,10 +577,38 @@ export class WorkflowService {
       return {
         replay: true,
         error: new WorkflowError(previous.error.code, previous.error.message),
-        command, taskId, actorId, idempotencyKey, commandSignature
+        command, taskId, actorId, idempotencyKey, commandSignature, executionContext
       }
     }
-    return { replay: true, result: copy(previous.result), command, taskId, actorId, idempotencyKey, commandSignature }
+    return {
+      replay: true, result: copy(previous.result), command, taskId, actorId,
+      idempotencyKey, commandSignature, executionContext
+    }
+  }
+
+  #validateExecutionContext(actorId, executionContext) {
+    if (!executionContext) return
+    const actor = this.#user(actorId)
+    if (actor.workstationId && actor.workstationId !== executionContext.workstationId) {
+      throw new WorkflowError(
+        'WORKSTATION_MISMATCH',
+        `${actorId} is assigned to ${actor.workstationId}, not ${executionContext.workstationId}`
+      )
+    }
+    const previous = this.events.find((event) => (
+      event.agentSessionId === executionContext.sessionId
+      && !['WORKSTATION_MISMATCH', 'AGENT_SESSION_CONFLICT'].includes(event.reasonCode)
+    ))
+    if (previous && (
+      previous.actorId !== actorId
+      || previous.workstationId !== executionContext.workstationId
+      || previous.agentType !== executionContext.agentType
+    )) {
+      throw new WorkflowError(
+        'AGENT_SESSION_CONFLICT',
+        `Agent Session ${executionContext.sessionId} is already bound to another execution context`
+      )
+    }
   }
 
   #recordCommand(context, outcome, result, error) {
@@ -565,13 +642,13 @@ export class WorkflowService {
       reasonCode: error.code,
       reason: error.message,
       occurredAt: this.clock().toISOString(),
-      ...this.#traceContext(task, context.actorId)
+      ...this.#traceContext(task, context.actorId, context.executionContext)
     })
     this.revision += 1
     this.#recordCommand(context, 'rejected', undefined, { code: error.code, message: error.message })
   }
 
-  #transition(task, status, type, actorId, data = {}, correlationId) {
+  #transition(task, status, type, actorId, data = {}, correlationId, executionContext) {
     const previousStatus = task.status
     task.status = status
     this.events.push({
@@ -586,17 +663,19 @@ export class WorkflowService {
       status,
       outcome: 'succeeded',
       occurredAt: this.clock().toISOString(),
-      ...this.#traceContext(task, actorId),
+      ...this.#traceContext(task, actorId, executionContext),
       ...copy(data)
     })
     this.revision += 1
   }
 
-  #unblockDependents(actorId, correlationId) {
+  #unblockDependents(actorId, correlationId, executionContext) {
     for (const task of this.tasks.values()) {
       if (task.status !== 'blocked') continue
       const satisfied = task.dependencyIds.every((id) => ['accepted', 'integrated'].includes(this.#task(id).status))
-      if (satisfied) this.#transition(task, 'ready', 'TaskUnblocked', actorId, {}, correlationId)
+      if (satisfied) this.#transition(
+        task, 'ready', 'TaskUnblocked', actorId, {}, correlationId, executionContext
+      )
     }
   }
 
@@ -617,7 +696,7 @@ export class WorkflowService {
     }
   }
 
-  #traceContext(task, actorId) {
+  #traceContext(task, actorId, executionContext) {
     if (!task) return {}
     const actor = this.users.get(actorId)
     const run = this.agentRuns.findLast((candidate) => candidate.taskId === task.id)
@@ -632,7 +711,15 @@ export class WorkflowService {
       projectId: task.projectId,
       moduleId: task.moduleId,
       ...(roleAssignment ? { roleAssignment: copy(roleAssignment) } : {}),
-      ...(run ? { agentType: run.agentType } : {}),
+      ...(executionContext ? {
+        agentType: executionContext.agentType,
+        workstationId: executionContext.workstationId,
+        agentSessionId: executionContext.sessionId
+      } : run?.actorId === actorId ? {
+        agentType: run.agentType,
+        ...(run.workstationId ? { workstationId: run.workstationId } : {}),
+        ...(run.agentSessionId ? { agentSessionId: run.agentSessionId } : {})
+      } : {}),
       ...(evidence?.repository || run?.repository ? { repository: evidence?.repository ?? run.repository } : {}),
       ...(evidence?.branch || run?.branch ? { branch: evidence?.branch ?? run.branch } : {}),
       ...(evidence?.commitSha ? { commitSha: evidence.commitSha } : {}),

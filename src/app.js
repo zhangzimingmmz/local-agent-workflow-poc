@@ -29,6 +29,12 @@ function roleLabel(role) {
   return role.replace(/[-_]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
 }
 
+function validExecutionId(value, maximum) {
+  return typeof value === 'string'
+    && value.length <= maximum
+    && /^[A-Za-z0-9][A-Za-z0-9._:-]{2,}$/.test(value)
+}
+
 function dashboardHtml(data) {
   const roles = [...new Set(data.tasks.map((task) => task.role))]
   const lanes = roles.map((role) => {
@@ -44,8 +50,9 @@ function dashboardHtml(data) {
   }).join('')
   const requirements = data.requirements.map((requirement) => `<div data-requirement="${escapeHtml(requirement.id)}"><strong>${escapeHtml(requirement.id)}</strong> · ${escapeHtml(requirement.status)}</div>`).join('')
   const timeline = data.events.map((event) => `<li><time>${escapeHtml(event.occurredAt)}</time><strong>${escapeHtml(event.type)}</strong><span>${escapeHtml(event.taskId || event.requirementId)} · ${escapeHtml(event.actorId)} · ${escapeHtml(event.outcome)}</span>${event.reason ? `<small>${escapeHtml(event.reasonCode)}: ${escapeHtml(event.reason)}</small>` : ''}</li>`).join('') || '<li class="muted">No activity yet</li>'
+  const agentSessions = data.agentSessions.map((session) => `<li data-agent-session="${escapeHtml(session.sessionId)}"><strong>${escapeHtml(session.actorId)}</strong><span>${escapeHtml(session.agentType)} · ${escapeHtml(session.workstationId)}</span><small>${escapeHtml(session.actions)} actions · ${escapeHtml(session.sessionId)}</small></li>`).join('') || '<li class="muted">No local Agent Sessions recorded</li>'
   const metrics = data.metrics
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(data.organization.name)} Workflow</title><style>:root{color-scheme:light}*{box-sizing:border-box}body{font:15px system-ui;margin:0;background:#f4f6f8;color:#17212b}main{max-width:1240px;margin:auto;padding:32px}header,.card-title{display:flex;justify-content:space-between;align-items:center}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.metric,article,.panel{background:white;border:1px solid #dce2e8;border-radius:12px;padding:18px}.metric{display:grid;gap:6px}.metric strong{font-size:1.4rem}.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:24px}.lanes section{display:flex;flex-direction:column;gap:16px}h2{font-size:1rem;margin:0}article{display:grid;gap:10px}em{font-style:normal;color:#52606d}dl{display:grid;grid-template-columns:1fr 1fr;margin:0}dt{font-size:.75rem;color:#66788a}dd{margin:2px 0}.chip{background:#e8eef5;border-radius:999px;padding:3px 8px;margin-left:4px}.blocked{color:#9b2c2c}.muted{color:#718096}.panel{margin-top:24px}.timeline{list-style:none;padding:0;display:grid;gap:12px}.timeline li{display:grid;grid-template-columns:190px 170px 1fr;gap:10px;border-bottom:1px solid #edf1f5;padding-bottom:10px}.timeline small{grid-column:2/4;color:#9b2c2c}code{overflow-wrap:anywhere}@media(max-width:800px){.lanes,.summary{grid-template-columns:1fr}.timeline li{grid-template-columns:1fr}}</style></head><body><main><header><div><small>Organization</small><h1>${escapeHtml(data.organization.name)}</h1>${requirements}</div><strong>${metrics.events} events</strong></header><section id="workflow-metrics" class="summary"><div class="metric"><span>Evidence verified</span><strong>${displayRate(metrics.evidenceVerificationRate)}</strong></div><div class="metric"><span>Submission accepted</span><strong>${displayRate(metrics.submissionAcceptanceRate)}</strong></div><div class="metric"><span>Rework</span><strong>${metrics.rework.total}</strong></div><div class="metric"><span>Active time</span><strong>${displayDuration(metrics.flow.activeMs)}</strong></div><div class="metric"><span>Queue time</span><strong>${displayDuration(metrics.flow.queueMs)}</strong></div><div class="metric"><span>Review time</span><strong>${displayDuration(metrics.flow.reviewMs)}</strong></div><div class="metric"><span>Blocked time</span><strong>${displayDuration(metrics.flow.blockedMs)}</strong></div></section><div class="lanes">${lanes}</div><section class="panel"><h2>Activity Events</h2><ol id="activity-timeline" class="timeline">${timeline}</ol></section></main></body></html>`
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(data.organization.name)} Workflow</title><style>:root{color-scheme:light}*{box-sizing:border-box}body{font:15px system-ui;margin:0;background:#f4f6f8;color:#17212b}main{max-width:1240px;margin:auto;padding:32px}header,.card-title{display:flex;justify-content:space-between;align-items:center}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.metric,article,.panel{background:white;border:1px solid #dce2e8;border-radius:12px;padding:18px}.metric{display:grid;gap:6px}.metric strong{font-size:1.4rem}.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:24px}.lanes section{display:flex;flex-direction:column;gap:16px}h2{font-size:1rem;margin:0}article{display:grid;gap:10px}em{font-style:normal;color:#52606d}dl{display:grid;grid-template-columns:1fr 1fr;margin:0}dt{font-size:.75rem;color:#66788a}dd{margin:2px 0}.chip{background:#e8eef5;border-radius:999px;padding:3px 8px;margin-left:4px}.blocked{color:#9b2c2c}.muted{color:#718096}.panel{margin-top:24px}.timeline,.sessions{list-style:none;padding:0;display:grid;gap:12px}.timeline li{display:grid;grid-template-columns:190px 170px 1fr;gap:10px;border-bottom:1px solid #edf1f5;padding-bottom:10px}.timeline small{grid-column:2/4;color:#9b2c2c}.sessions li{display:grid;grid-template-columns:150px 1fr 2fr;gap:10px;border-bottom:1px solid #edf1f5;padding-bottom:10px}code{overflow-wrap:anywhere}@media(max-width:800px){.lanes,.summary{grid-template-columns:1fr}.timeline li,.sessions li{grid-template-columns:1fr}}</style></head><body><main><header><div><small>Organization</small><h1>${escapeHtml(data.organization.name)}</h1>${requirements}</div><strong>${metrics.events} events</strong></header><section id="workflow-metrics" class="summary"><div class="metric"><span>Evidence verified</span><strong>${displayRate(metrics.evidenceVerificationRate)}</strong></div><div class="metric"><span>Submission accepted</span><strong>${displayRate(metrics.submissionAcceptanceRate)}</strong></div><div class="metric"><span>Rework</span><strong>${metrics.rework.total}</strong></div><div class="metric"><span>Agent Sessions</span><strong>${metrics.execution.agentSessions}</strong></div><div class="metric"><span>Workstations</span><strong>${metrics.execution.workstations}</strong></div><div class="metric"><span>Accounts observed</span><strong>${metrics.execution.accounts}</strong></div><div class="metric"><span>Active time</span><strong>${displayDuration(metrics.flow.activeMs)}</strong></div><div class="metric"><span>Queue time</span><strong>${displayDuration(metrics.flow.queueMs)}</strong></div><div class="metric"><span>Review time</span><strong>${displayDuration(metrics.flow.reviewMs)}</strong></div><div class="metric"><span>Blocked time</span><strong>${displayDuration(metrics.flow.blockedMs)}</strong></div></section><div class="lanes">${lanes}</div><section id="agent-sessions" class="panel"><h2>Local Agent Sessions</h2><ol class="sessions">${agentSessions}</ol></section><section class="panel"><h2>Activity Events</h2><ol id="activity-timeline" class="timeline">${timeline}</ol></section></main></body></html>`
 }
 
 export function buildApp({
@@ -73,6 +80,35 @@ export function buildApp({
       })
     }
     request.idempotencyKey = key
+  }
+
+  async function captureExecutionContext(request, reply) {
+    const values = {
+      agentType: request.headers['x-workflow-agent-type'],
+      workstationId: request.headers['x-workflow-workstation-id'],
+      sessionId: request.headers['x-workflow-session-id']
+    }
+    const present = Object.values(values).filter((value) => value !== undefined).length
+    if (present === 0) return
+    if (
+      present !== 3
+      || !validExecutionId(values.agentType, 32)
+      || !validExecutionId(values.workstationId, 64)
+      || !validExecutionId(values.sessionId, 128)
+    ) {
+      return reply.code(400).send({
+        error: 'INVALID_EXECUTION_CONTEXT',
+        message: 'Agent type, Workstation ID, and Agent Session ID must be provided together as opaque identifiers'
+      })
+    }
+    request.executionContext = values
+  }
+
+  function commandOptions(request) {
+    return {
+      idempotencyKey: request.idempotencyKey,
+      ...(request.executionContext ? { executionContext: request.executionContext } : {})
+    }
   }
 
   function guidance(task, actorId) {
@@ -112,9 +148,9 @@ export function buildApp({
     const task = service.getTask(request.params.taskId)
     return guidance(task, request.actor.id)
   })
-  const commandHandlers = { preHandler: [authenticate, requireIdempotencyKey] }
+  const commandHandlers = { preHandler: [authenticate, requireIdempotencyKey, captureExecutionContext] }
   app.post('/api/v1/tasks/:taskId/claim', commandHandlers, async (request) => ({
-    task: await service.claim(request.params.taskId, request.actor.id, { idempotencyKey: request.idempotencyKey })
+    task: await service.claim(request.params.taskId, request.actor.id, commandOptions(request))
   }))
   app.post('/api/v1/tasks/:taskId/start', commandHandlers, async (request) => {
     const body = asJson(request.body)
@@ -125,7 +161,7 @@ export function buildApp({
     } catch (error) {
       if (error instanceof PolicyError) {
         await service.rejectAction('start', task.id, request.actor.id, error, {
-          idempotencyKey: request.idempotencyKey
+          ...commandOptions(request)
         })
       }
       throw error
@@ -135,7 +171,7 @@ export function buildApp({
       repository: body.repository,
       branch: body.branch,
       guidanceSnapshot
-    }, { idempotencyKey: request.idempotencyKey })
+    }, commandOptions(request))
     return { task: started, agentRun: service.getAgentRunForTask(task.id, request.actor.id) }
   })
   app.post('/api/v1/tasks/:taskId/subtasks', commandHandlers, async (request) => ({
@@ -143,18 +179,18 @@ export function buildApp({
       request.params.taskId,
       request.actor.id,
       asJson(request.body),
-      { idempotencyKey: request.idempotencyKey }
+      commandOptions(request)
     )
   }))
   app.post('/api/v1/tasks/:taskId/submit', commandHandlers, async (request) => ({
-    task: await service.submit(request.params.taskId, request.actor.id, asJson(request.body), { idempotencyKey: request.idempotencyKey })
+    task: await service.submit(request.params.taskId, request.actor.id, asJson(request.body), commandOptions(request))
   }))
   app.post('/api/v1/tasks/:taskId/review', commandHandlers, async (request) => {
     const body = asJson(request.body)
     return {
       task: await service.review(
         request.params.taskId, request.actor.id, body.decision, body.note,
-        { idempotencyKey: request.idempotencyKey }
+        commandOptions(request)
       )
     }
   })

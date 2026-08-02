@@ -59,13 +59,16 @@ frank=$(openssl rand -hex 20)
   printf 'DEMO_TOKEN_FRANK=%s\n' "$frank"
 } > "$env_file"
 
-for record in "alice:$alice" "bob:$bob" "carol:$carol" "dave:$dave" "erin:$erin" "frank:$frank"; do
+for record in "alice:$alice:workstation-a" "bob:$bob:workstation-b" "carol:$carol:workstation-a" "dave:$dave:workstation-b" "erin:$erin:workstation-a" "frank:$frank:workstation-b"; do
   name=${record%%:*}
-  token=${record#*:}
+  account_config=${record#*:}
+  token=${account_config%%:*}
+  workstation_id=${account_config#*:}
   {
     printf 'TEAM_WORKFLOW_URL=http://%s:%s\n' "$bind_address" "$app_port"
     printf 'TEAM_WORKFLOW_TOKEN=%s\n' "$token"
     printf 'TEAM_WORKFLOW_BASE_BRANCH=%s\n' "$base_branch"
+    printf 'TEAM_WORKFLOW_WORKSTATION_ID=%s\n' "$workstation_id"
   } > "$accounts_dir/$name.env"
 done
 

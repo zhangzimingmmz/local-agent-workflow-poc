@@ -6,21 +6,31 @@ import { createHash } from 'node:crypto'
 function configuration() {
   const url = process.env.TEAM_WORKFLOW_URL?.replace(/\/$/, '')
   const token = process.env.TEAM_WORKFLOW_TOKEN
-  if (!url || !token) throw new Error('TEAM_WORKFLOW_URL and TEAM_WORKFLOW_TOKEN are required')
-  return { url, token, baseBranch: process.env.TEAM_WORKFLOW_BASE_BRANCH || 'main' }
+  const workstationId = process.env.TEAM_WORKFLOW_WORKSTATION_ID
+  const sessionId = process.env.TEAM_WORKFLOW_SESSION_ID
+  if (!url) throw new Error('TEAM_WORKFLOW_URL is required')
+  if (!token) throw new Error('TEAM_WORKFLOW_TOKEN is required')
+  if (!workstationId) throw new Error('TEAM_WORKFLOW_WORKSTATION_ID is required')
+  if (!sessionId) throw new Error('TEAM_WORKFLOW_SESSION_ID is required')
+  return { url, token, workstationId, sessionId, baseBranch: process.env.TEAM_WORKFLOW_BASE_BRANCH || 'main' }
 }
 
 function operationKey(command, id, body = {}) {
-  const operation = createHash('sha256').update(JSON.stringify({ command, id, body })).digest('hex').slice(0, 24)
+  const operation = createHash('sha256').update(JSON.stringify({
+    command, id, body, sessionId: configuration().sessionId
+  })).digest('hex').slice(0, 24)
   return `workflow:${command}:${id}:${operation}`
 }
 
 async function request(path, { method = 'GET', body, key } = {}) {
-  const { url, token } = configuration()
+  const { url, token, workstationId, sessionId } = configuration()
   const response = await fetch(`${url}${path}`, {
     method,
     headers: {
       authorization: `Bearer ${token}`,
+      'x-workflow-agent-type': 'codex',
+      'x-workflow-workstation-id': workstationId,
+      'x-workflow-session-id': sessionId,
       ...(key ? { 'idempotency-key': key } : {}),
       ...(body ? { 'content-type': 'application/json' } : {})
     },

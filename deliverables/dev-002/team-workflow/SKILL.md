@@ -9,6 +9,8 @@ Act for the authenticated human Account. PostgreSQL owns workflow truth, GitHub 
 
 Use `workflow.mjs`; never print `TEAM_WORKFLOW_TOKEN` or hand-build supported HTTP mutations.
 
+Require `TEAM_WORKFLOW_WORKSTATION_ID` from the Account file and a new `TEAM_WORKFLOW_SESSION_ID` generated immediately before launching each fresh Codex session. Never persist or reuse the session ID, and never substitute a hostname or personal device identifier. The client reports these opaque values with every action so Owner and Reviewer activity remains distinguishable.
+
 ## Owner flow
 
 1. Run `whoami`, `list`, and `show <id>`. Treat the returned scoped Role Assignments, not a global Account role, as authorization.
