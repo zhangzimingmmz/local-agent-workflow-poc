@@ -20,7 +20,7 @@ No Account token, GitHub token, or Webhook secret is included in this report.
 | --- | --- |
 | Deployed application revision | `104bad2` on GitHub `main` at verification time and in both deployed application directories |
 | CI | GitHub Actions run `30763276684` completed successfully for `104bad2` |
-| Local verification | 61/61 tests passed; coverage 91.30% statements, 82.01% branches, 87.70% functions, and 91.30% lines |
+| Local verification | 65/65 tests passed; coverage 91.67% statements, 82.76% branches, 88.37% functions, and 91.67% lines |
 | Dependency audit | `npm audit --audit-level=high` reported 0 vulnerabilities |
 | Deployment configuration | `docker compose --env-file .env.example config --quiet` passed |
 | Completed instance | healthy; `completed | 6 tasks | 38 events | 6 runs | 14 deliveries` |
@@ -53,7 +53,7 @@ Status meanings:
 
 | Criterion | Status | Evidence and limits |
 | --- | --- | --- |
-| AC-01 | Live proven | Six hashed-token Accounts completed distinct Owner and Reviewer actions; API role filtering is automated. Scoped multi-role assignments are not yet modeled as first-class records. |
+| AC-01 | Live + automated | Six hashed-token Accounts completed distinct Owner and Reviewer actions. Role Assignments are first-class records, may coexist on one Account, match Organization through Work Item scopes, and are recorded by identity on new events; old single-role snapshots normalize to deterministic Project assignments. |
 | AC-02 | Live proven | Browser shows `REQ-001`, all six top-level Work Items, three role lanes, owners/reviewers, and dependencies. Child split/assignment is automated + deployed but not used on the preserved rollout. |
 | AC-03 | Live proven | Concurrent `DES-001` claims yielded one Owner and one `INVALID_STATE` rejection. |
 | AC-04 | Live proven | Rollout browser shows all developer/tester work Blocked before design Acceptance; claim rejection and unlock rules are automated. |
@@ -78,7 +78,7 @@ Status meanings:
 | --- | --- | --- | --- |
 | 1 | Central Web/API application | Present + live | Workflow engine, policy resolver, GitHub verification, event log, dashboard, status lookup, and split/assign endpoint |
 | 2 | Schema, migrations, and seed data | Present + live | PostgreSQL snapshot/event/inbox storage and six-Account Northstar seed |
-| 3 | `team-workflow` Codex Skill | Present locally and project-local | Source is on the unpushed `codex/team-workflow-poc` branch by design; rollout repository contains a discoverable `.agents/skills/team-workflow/` copy |
+| 3 | `team-workflow` Codex Skill | Present locally and project-local | Source is on the unpushed `codex/team-workflow-poc` branch at `f7c1d09` by design; rollout repository contains a discoverable `.agents/skills/team-workflow/` copy |
 | 4 | Deterministic CLI | Present + tested | Includes `status` and `split` in addition to the required owner/reviewer lifecycle |
 | 5 | Container deployment | Present + live | Two isolated healthy application/database stacks on the control-plane host |
 | 6 | TLS Webhook edge | Present + live | Public edge forwards only `/webhooks/github` to the private control plane |
@@ -96,6 +96,7 @@ These are in GitHub `main`, CI, and both deployed instances:
 3. Active, Queue, Review, and Blocked flow metrics, including initial Ready/Blocked intervals persisted at creation.
 4. Server-configured trusted Project repository and base-branch enforcement.
 5. Owner-controlled child Work Item split and eligible-role assignment with inheritance, dependency separation, idempotency, and audit events.
+6. Multiple authoritative Role Assignments per Account, scoped from Organization through Work Item, with exact assignment identity in new Activity Events and legacy snapshot compatibility.
 
 The rollout repository intentionally remains on its older application-feature baseline because its human Requirement is to implement the status capability through the workflow. The rollout control plane itself runs the current orchestration application.
 
@@ -103,10 +104,9 @@ The rollout repository intentionally remains on its older application-feature ba
 
 1. **Human rollout:** the only strict completion blocker. Workstation A must operate Alice, Carol, and Erin; workstation B must operate Bob, Dave, and Frank. Each Account needs its own clone and fresh Codex session.
 2. **Audit boundary:** authenticated domain command failures are persisted, but invalid bearer authentication and read-only policy-resolution failures are not append-only Activity Events. The goal language is broader than the current implementation.
-3. **Role-assignment model:** the PoC Account has one role field. The documents allow this for the first version but also require the model to permit future scoped multiple Role Assignments; that future shape is not yet first-class.
-4. **Browser automation:** dashboard HTML has integration coverage and the deployed UI has manual browser evidence, but there is no maintained Playwright browser E2E test in the repository.
-5. **Newest live mutation evidence:** trusted-repository enforcement, enriched event envelopes, and child splitting are tested and deployed. They were not used to mutate the preserved rollout database, and historical completed events are not backfilled.
-6. **Legacy timing history:** the completed snapshot predates persisted task creation timestamps, so its initial Blocked duration cannot be reconstructed exactly and the dashboard correctly shows `No data`. Newly seeded and dynamically split work persists the necessary facts; the rollout instance visibly reports both initial Queue and Blocked time.
+3. **Browser automation:** dashboard HTML has integration coverage and the deployed UI has manual browser evidence, but there is no maintained Playwright browser E2E test in the repository.
+4. **Newest live mutation evidence:** trusted-repository enforcement, enriched event envelopes, child splitting, and multiple scoped Role Assignments are tested and deployed. They were not used to mutate the preserved rollout database, and historical completed events are not backfilled.
+5. **Legacy timing history:** the completed snapshot predates persisted task creation timestamps, so its initial Blocked duration cannot be reconstructed exactly and the dashboard correctly shows `No data`. Newly seeded and dynamically split work persists the necessary facts; the rollout instance visibly reports both initial Queue and Blocked time.
 
 ## Exact remaining acceptance run
 

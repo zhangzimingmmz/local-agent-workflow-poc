@@ -22,9 +22,9 @@ Require a Git repository connected to the configured public GitHub project. Pres
 
 ## Enter the workflow
 
-1. Run `whoami`, then `list`.
-2. Select only a Work Item eligible for the authenticated role. If the user named an ID, run `show <id>` before changing anything.
-3. Run `claim <id>`. Stop if it is blocked, already claimed, or rejected for the current role.
+1. Run `whoami`, then `list`. Treat the returned Role Assignments, not a global job title, as the Account's authorization.
+2. Select only a Work Item returned by `list`, which filters by role and Organization, Team, Project, Module, Requirement, or Work Item scope. If the user named an ID, run `show <id>` before changing anything.
+3. Run `claim <id>`. Stop if it is blocked, already claimed, or no matching Role Assignment applies to that Work Item hierarchy.
 4. Run `policy <id>`. Treat the returned rules and source versions as the Effective Guidance for this Agent Run.
 5. Confirm the current repository and inspect `git status --short`. Create or switch to `work/<work-item-id>-<slug>` only when doing so preserves existing changes.
 6. Run `start <id>` immediately before producing the Artifact. The client reports the current repository and branch; the control plane records a Codex Agent Run with the server-resolved guidance snapshot.
@@ -39,7 +39,7 @@ Split a Work Item only when the human requests decomposition or Effective Guidan
 split <parent-id> --id <child-id> --title <text> --role <role> --reviewer <account> [--assignee <account>] [--depends-on <id> ...]
 ```
 
-The child inherits its Organization, Team, Project, Module, and Requirement from the parent. Parent-child expresses containment only; `--depends-on` expresses execution order. The Reviewer and optional assignee must hold the child's role and must be different Accounts. An assigned child with satisfied Dependencies becomes Claimed; an unassigned child becomes Ready; unmet Dependencies keep it Blocked. Continue the child in the assigned Account's separate session after running `show` and `policy` there.
+The child inherits its Organization, Team, Project, Module, and Requirement from the parent. Parent-child expresses containment only; `--depends-on` expresses execution order. The Reviewer and optional assignee must hold matching Role Assignments that apply inside the child's inherited hierarchy, and they must be different Accounts. An assigned child with satisfied Dependencies becomes Claimed; an unassigned child becomes Ready; unmet Dependencies keep it Blocked. Continue the child in the assigned Account's separate session after running `whoami`, `show`, and `policy` there.
 
 ## Perform role work
 
@@ -57,7 +57,7 @@ Verify the accepted design and development evidence independently. Store test ca
 
 ### Reviewer
 
-Inspect the Work Item, Effective Guidance, pull-request diff, checks, and declared Artifact paths. Use `review <id> --accept --note <text>` only when the Submission satisfies them. Otherwise use `--reject` with a concrete recovery note. Never review work owned by the same Account.
+Inspect the Work Item, Effective Guidance, pull-request diff, checks, and declared Artifact paths. Confirm `whoami` contains a matching Role Assignment for the Work Item hierarchy. Use `review <id> --accept --note <text>` only when the Submission satisfies them. Otherwise use `--reject` with a concrete recovery note. Never review work owned by the same Account.
 
 ## Submit owner work
 

@@ -11,8 +11,8 @@ Use `workflow.mjs`; never print `TEAM_WORKFLOW_TOKEN` or hand-build supported HT
 
 ## Owner flow
 
-1. Run `whoami`, `list`, and `show <id>`.
-2. Run `claim <id>` and stop on a role, state, or dependency rejection.
+1. Run `whoami`, `list`, and `show <id>`. Treat the returned scoped Role Assignments, not a global Account role, as authorization.
+2. Run `claim <id>` only for work returned by `list`; stop when no matching assignment applies to its hierarchy or on a state/dependency rejection.
 3. Run `policy <id>`. Apply sources in Organization → Team → Project → Module → Work Item order and preserve the returned versions.
 4. Create the required `work/<id>-<slug>` branch without overwriting unrelated changes.
 5. Run `start <id>` to record the Codex Agent Run, branch, and server-resolved guidance snapshot.
@@ -24,7 +24,7 @@ Report the result as Submitted only. A different configured Reviewer must accept
 
 ## Split owned work
 
-After claiming a parent, use `split <parent-id> --id <child-id> --title <text> --role <role> --reviewer <account> [--assignee <account>] [--depends-on <id>]` only when the human requests decomposition. Parent-child expresses containment; Dependencies express order. Continue an assigned child in that Account's separate session.
+After claiming a parent, use `split <parent-id> --id <child-id> --title <text> --role <role> --reviewer <account> [--assignee <account>] [--depends-on <id>]` only when the human requests decomposition. Parent-child expresses containment; Dependencies express order. Reviewer and assignee Role Assignments must match the child's inherited hierarchy. Continue an assigned child in that Account's separate session.
 
 ## Role practices
 
@@ -35,7 +35,7 @@ After claiming a parent, use `split <parent-id> --id <child-id> --title <text> -
 
 ## Review flow
 
-Run `show <id>` and `policy <id>`, inspect the GitHub PR and checks, then use exactly one:
+Run `whoami`, `show <id>`, and `policy <id>`; confirm one Role Assignment matches the Work Item hierarchy, inspect the GitHub PR and checks, then use exactly one:
 
 ```text
 review <id> --accept --note <text>

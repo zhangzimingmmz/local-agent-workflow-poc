@@ -79,7 +79,7 @@ Northstar Labs                       Organization
 | Erin | Tester | Implement and execute workflow acceptance tests |
 | Frank | Tester | Independently verify evidence and publish the test report |
 
-An Account represents a human even when Codex performs commands. The PoC may assign one Role to each Account, but the model must permit multiple scoped Role Assignments later.
+An Account represents a human even when Codex performs commands. The Northstar seed assigns one Project-scoped Role Assignment to each Account, while the model supports multiple assignments scoped independently to Organization, Team, Project, Module, Requirement, or Work Item.
 
 ## 5. Demonstration Requirement
 
