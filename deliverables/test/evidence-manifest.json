@@ -1,0 +1,47 @@
+{
+  "requirementId": "REQ-001",
+  "workItemId": "TST-001",
+  "gitHubPullRequests": [1, 2, 3, 4],
+  "observations": [
+    {
+      "id": "OBS-CLAIM",
+      "source": "deployed control-plane API and Activity Events",
+      "result": "Concurrent DES-001 claims produced Alice as the only owner and rejected Bob with INVALID_STATE."
+    },
+    {
+      "id": "OBS-GUIDANCE",
+      "source": "deployed Agent Runs run-1 through run-5",
+      "result": "Every role received versioned Organization, Team, Project, Module, and Work Item guidance plus a snapshot hash."
+    },
+    {
+      "id": "OBS-EVIDENCE",
+      "source": "GitHub PRs 1 through 4 and verified Submission records",
+      "result": "Declared commits, branches, PR targets, and Artifact paths were verified before Submission."
+    },
+    {
+      "id": "OBS-NEGATIVE",
+      "source": "ActionRejected events",
+      "result": "Self-review and mismatched Git evidence were rejected without advancing Work Item state."
+    },
+    {
+      "id": "OBS-INTEGRATION",
+      "source": "GitHub merge Webhooks and scheduled reconciliation",
+      "result": "Merged accepted PRs reached Integrated; one missed immediate transition was recovered by reconciliation."
+    },
+    {
+      "id": "OBS-AUTOMATION",
+      "source": "deliverables/test/automated-results.json",
+      "result": "All automated tests and coverage thresholds passed and the dependency audit found no high or critical vulnerability."
+    }
+  ],
+  "conclusions": [
+    {
+      "statement": "The role-gated design and development stages are repeatable through the deterministic local client.",
+      "basedOn": ["OBS-CLAIM", "OBS-GUIDANCE", "OBS-EVIDENCE", "OBS-NEGATIVE"]
+    },
+    {
+      "statement": "GitHub evidence remains authoritative for Integration and reconciliation provides an exactly-once recovery path.",
+      "basedOn": ["OBS-INTEGRATION", "OBS-AUTOMATION"]
+    }
+  ]
+}
