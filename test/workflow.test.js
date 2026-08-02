@@ -298,6 +298,72 @@ test('a started task records one Codex Agent Run with its exact guidance snapsho
   assert.equal(workflow.listEvents().at(-1).agentRunId, 'run-1')
 })
 
+test('local Agent Session context distinguishes Owner and Reviewer actions across Workstations', async () => {
+  const fixture = workflowFixture()
+  fixture.users.find((user) => user.id === 'alice').workstationId = 'workstation-a'
+  fixture.users.find((user) => user.id === 'bob').workstationId = 'workstation-b'
+  fixture.clock = () => new Date('2026-08-03T00:00:00.000Z')
+  const workflow = new WorkflowService(fixture)
+  const owner = {
+    idempotencyKey: 'owner-action',
+    executionContext: { agentType: 'codex', workstationId: 'workstation-a', sessionId: 'session-owner' }
+  }
+  const reviewer = {
+    idempotencyKey: 'reviewer-action',
+    executionContext: { agentType: 'codex', workstationId: 'workstation-b', sessionId: 'session-reviewer' }
+  }
+
+  workflow.claim('DES-001', 'alice', { ...owner, idempotencyKey: 'owner-claim' })
+  workflow.start('DES-001', 'alice', {
+    repository: 'zhangzimingmmz/local-agent-workflow-poc', branch: 'work/DES-001-design'
+  }, { ...owner, idempotencyKey: 'owner-start' })
+  await workflow.submit('DES-001', 'alice', validEvidence(), { ...owner, idempotencyKey: 'owner-submit' })
+  await workflow.review('DES-001', 'bob', 'accept', 'Independent review', reviewer)
+
+  assert.deepEqual(workflow.listAgentRuns()[0], {
+    id: 'run-1', taskId: 'DES-001', actorId: 'alice', agentType: 'codex',
+    workstationId: 'workstation-a', agentSessionId: 'session-owner',
+    repository: 'zhangzimingmmz/local-agent-workflow-poc', branch: 'work/DES-001-design',
+    guidanceSnapshot: null, startedAt: '2026-08-03T00:00:00.000Z'
+  })
+  const accepted = workflow.listEvents().find((event) => event.type === 'TaskAccepted')
+  assert.equal(accepted.actorId, 'bob')
+  assert.equal(accepted.agentType, 'codex')
+  assert.equal(accepted.workstationId, 'workstation-b')
+  assert.equal(accepted.agentSessionId, 'session-reviewer')
+
+  const dashboard = workflow.dashboard()
+  assert.deepEqual(dashboard.metrics.execution, { agentSessions: 2, workstations: 2, accounts: 2 })
+  assert.deepEqual(dashboard.agentSessions.map(({ sessionId, actorId, workstationId, actions }) => (
+    { sessionId, actorId, workstationId, actions }
+  )), [
+    { sessionId: 'session-owner', actorId: 'alice', workstationId: 'workstation-a', actions: 3 },
+    { sessionId: 'session-reviewer', actorId: 'bob', workstationId: 'workstation-b', actions: 1 }
+  ])
+})
+
+test('an Agent Session cannot cross Account or configured Workstation boundaries', () => {
+  const fixture = workflowFixture()
+  fixture.users.find((user) => user.id === 'alice').workstationId = 'workstation-a'
+  fixture.users.find((user) => user.id === 'bob').workstationId = 'workstation-b'
+  const workflow = new WorkflowService(fixture)
+  const context = (workstationId, sessionId) => ({
+    idempotencyKey: `${workstationId}:${sessionId}`,
+    executionContext: { agentType: 'codex', workstationId, sessionId }
+  })
+
+  assert.throws(
+    () => workflow.claim('DES-001', 'alice', context('workstation-b', 'wrong-workstation')),
+    (error) => error.code === 'WORKSTATION_MISMATCH'
+  )
+  workflow.claim('DES-001', 'alice', context('workstation-a', 'shared-session'))
+  assert.throws(
+    () => workflow.claim('DES-001', 'bob', context('workstation-b', 'shared-session')),
+    (error) => error.code === 'AGENT_SESSION_CONFLICT'
+  )
+  assert.equal(workflow.listEvents().at(-1).agentSessionId, 'shared-session')
+})
+
 test('Submission events carry hierarchy, role, Agent, Git, and guidance trace context', async () => {
   const fixture = workflowFixture()
   fixture.repository = { name: 'acme/workflow', baseBranch: 'main' }

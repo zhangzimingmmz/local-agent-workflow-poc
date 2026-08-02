@@ -384,6 +384,56 @@ test('starting through the API records a Codex Agent Run with server-resolved gu
   assert.equal(dashboard.json().agentRuns[0].agentType, 'codex')
 })
 
+test('API records local execution context and exposes Agent Session evidence on the dashboard', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const headers = {
+    authorization: 'Bearer demo-alice', 'content-type': 'application/json',
+    'x-workflow-agent-type': 'codex',
+    'x-workflow-workstation-id': 'workstation-a',
+    'x-workflow-session-id': 'session-api-owner'
+  }
+  await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/claim',
+    headers: { ...headers, 'idempotency-key': 'context-claim' }
+  })
+  const response = await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/start',
+    headers: { ...headers, 'idempotency-key': 'context-start' },
+    payload: JSON.stringify({
+      repository: 'zhangzimingmmz/local-agent-workflow-poc', branch: 'work/DES-001-design'
+    })
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().agentRun.workstationId, 'workstation-a')
+  assert.equal(response.json().agentRun.agentSessionId, 'session-api-owner')
+  const dashboard = await app.inject({ method: 'GET', url: '/api/v1/dashboard', headers })
+  assert.equal(dashboard.json().agentSessions[0].sessionId, 'session-api-owner')
+  assert.deepEqual(dashboard.json().metrics.execution, { agentSessions: 1, workstations: 1, accounts: 1 })
+  const page = await app.inject({ method: 'GET', url: '/' })
+  assert.match(page.body, /id="agent-sessions"/)
+  assert.match(page.body, /data-agent-session="session-api-owner"/)
+  assert.match(page.body, /workstation-a/)
+})
+
+test('API rejects a partial local execution context before changing workflow state', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const response = await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/claim',
+    headers: {
+      authorization: 'Bearer demo-alice', 'idempotency-key': 'partial-context',
+      'x-workflow-session-id': 'session-without-workstation'
+    }
+  })
+  assert.equal(response.statusCode, 400)
+  assert.equal(response.json().error, 'INVALID_EXECUTION_CONTEXT')
+  assert.equal((await app.inject({
+    method: 'GET', url: '/api/v1/tasks/DES-001', headers: { authorization: 'Bearer demo-alice' }
+  })).json().task.status, 'ready')
+})
+
 test('health reports database readiness and returns 503 when the dependency fails', async (t) => {
   const ready = setup({ healthCheck: async () => ({ database: 'ok' }) }).app
   const unavailable = setup({ healthCheck: async () => { throw new Error('database unavailable') } }).app

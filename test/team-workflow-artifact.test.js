@@ -15,6 +15,8 @@ test('DEV-002 packages Codex Skill instructions and a deterministic CLI', async 
   const [skill, cli] = await Promise.all([readFile(skillUrl, 'utf8'), readFile(cliUrl, 'utf8')])
   assert.match(skill, /Organization.*Team.*Project.*Module.*Work Item/s)
   assert.match(skill, /claim.*policy.*start.*submit.*review/s)
+  assert.match(skill, /TEAM_WORKFLOW_WORKSTATION_ID/)
+  assert.match(skill, /TEAM_WORKFLOW_SESSION_ID/)
   assert.match(cli, /idempotency-key/)
   assert.match(cli, /whoami/)
   assert.match(cli, /submit/)
@@ -31,6 +33,8 @@ test('a fresh Codex checkout discovers the executable team-workflow Skill', asyn
   assert.match(skill, /scripts\/workflow\.mjs/)
   assert.match(skill, /explicit approval immediately before pushing/)
   assert.match(cli, /TEAM_WORKFLOW_URL/)
+  assert.match(cli, /TEAM_WORKFLOW_WORKSTATION_ID/)
+  assert.match(cli, /TEAM_WORKFLOW_SESSION_ID/)
   assert.match(cli, /idempotency-key/)
   execFileSync(process.execPath, ['--check', projectCliUrl.pathname])
 })
@@ -39,9 +43,13 @@ test('project CLI status resolves a Requirement through the unified status endpo
   let requestedUrl
   let requestedMethod
   let requestedBody
+  let requestedIdempotencyKey
+  let requestedHeaders
   const server = createServer(async (request, response) => {
     requestedUrl = request.url
     requestedMethod = request.method
+    requestedIdempotencyKey = request.headers['idempotency-key']
+    requestedHeaders = request.headers
     assert.equal(request.headers.authorization, 'Bearer account-token')
     const chunks = []
     for await (const chunk of request) chunks.push(chunk)
@@ -59,13 +67,18 @@ test('project CLI status resolves a Requirement through the unified status endpo
   const childEnvironment = {
     ...process.env,
     TEAM_WORKFLOW_URL: `http://127.0.0.1:${address.port}`,
-    TEAM_WORKFLOW_TOKEN: 'account-token'
+    TEAM_WORKFLOW_TOKEN: 'account-token',
+    TEAM_WORKFLOW_WORKSTATION_ID: 'workstation-a',
+    TEAM_WORKFLOW_SESSION_ID: 'session-cli-one'
   }
   const { stdout } = await runFile(process.execPath, [projectCliUrl.pathname, 'status', 'REQ-001'], {
     env: childEnvironment
   })
 
   assert.equal(requestedUrl, '/api/v1/status/REQ-001')
+  assert.equal(requestedHeaders['x-workflow-agent-type'], 'codex')
+  assert.equal(requestedHeaders['x-workflow-workstation-id'], 'workstation-a')
+  assert.equal(requestedHeaders['x-workflow-session-id'], 'session-cli-one')
   assert.deepEqual(JSON.parse(stdout), {
     entityType: 'requirement',
     requirement: { id: 'REQ-001', status: 'in_progress' }
@@ -94,4 +107,18 @@ test('project CLI status resolves a Requirement through the unified status endpo
     id: 'DES-001-A', title: 'Research one option', role: 'designer',
     reviewerId: 'alice', assigneeId: 'bob', dependencyIds: ['DES-002']
   })
+  const firstSessionKey = requestedIdempotencyKey
+  await runFile(process.execPath, [
+    projectCliUrl.pathname, 'split', 'DES-001',
+    '--id', 'DES-001-A', '--title', 'Research one option', '--role', 'designer',
+    '--reviewer', 'alice', '--assignee', 'bob', '--depends-on', 'DES-002'
+  ], { env: { ...childEnvironment, TEAM_WORKFLOW_SESSION_ID: 'session-cli-two' } })
+  assert.notEqual(requestedIdempotencyKey, firstSessionKey)
+
+  const missingSession = { ...childEnvironment }
+  delete missingSession.TEAM_WORKFLOW_SESSION_ID
+  await assert.rejects(
+    runFile(process.execPath, [projectCliUrl.pathname, 'whoami'], { env: missingSession }),
+    (error) => error.code === 1 && /TEAM_WORKFLOW_SESSION_ID is required/.test(error.stderr)
+  )
 })

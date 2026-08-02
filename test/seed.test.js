@@ -21,6 +21,13 @@ test('seed creates six virtual accounts, six dependency-linked work items and fi
     && assignment.scopeId === 'agent-workflow'
   ))), true)
   assert.equal(seed.users.every((user) => !('token' in user) && /^[a-f0-9]{64}$/.test(user.tokenHash)), true)
+  assert.deepEqual(
+    Object.fromEntries(seed.users.map((user) => [user.id, user.workstationId])),
+    {
+      alice: 'workstation-a', bob: 'workstation-b', carol: 'workstation-a',
+      dave: 'workstation-b', erin: 'workstation-a', frank: 'workstation-b'
+    }
+  )
   assert.equal(seed.tasks.length, 6)
   assert.equal(seed.tasks.every((task) => task.parentId === null), true)
   assert.deepEqual(seed.organization, { id: 'northstar', name: 'Northstar Labs' })

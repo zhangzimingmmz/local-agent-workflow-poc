@@ -58,9 +58,17 @@ _Avoid_: Co-owner
 An Account other than the Accountable Owner that accepts or rejects a Submission.
 _Avoid_: Approver when no review occurred
 
+**Workstation**:
+A human-operated local delivery environment identified by an opaque configured ID and used to run an Account's Agent Sessions.
+_Avoid_: Control-plane host, Agent server
+
+**Agent Session**:
+One fresh local Codex session for one Account on one Workstation, identified by an opaque ID that is reported with its workflow actions.
+_Avoid_: Login session, Agent Run
+
 **Agent Run**:
-One traceable local Codex execution associated with an Account, Work Item, repository, branch, and effective guidance snapshot.
-_Avoid_: User session
+One traceable execution of a Work Item inside an Agent Session, associated with a repository, branch, and Effective Guidance snapshot.
+_Avoid_: Agent Session, user login
 
 ## Governance
 
@@ -117,4 +125,5 @@ _Avoid_: Mutable audit row, application log
 - A GitHub Delivery may create or update Git Evidence and then produce Activity Events.
 - Acceptance applies to a Submission; Integration applies to accepted Git Evidence.
 - Every state transition and evidence verification produces an Activity Event.
-- An Agent Run acts for one Account and records the Effective Guidance versions it used.
+- An Agent Session belongs to one Account and one Workstation; its actions carry the same opaque execution context.
+- An Agent Run acts inside one Agent Session and records the Effective Guidance versions it used.
