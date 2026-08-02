@@ -1,0 +1,22 @@
+docs/ROLLOUT.md
+  s_13e1caf6530d13::t_2d1053ad3301e4 1-34,36-121
+  s_13e1caf6530d13::t_05e2f535434654 35
+README.md
+  s_13e1caf6530d13::t_2d1053ad3301e4 19-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "24672d13c09daf27c7321648cb85fb4d22321608",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
