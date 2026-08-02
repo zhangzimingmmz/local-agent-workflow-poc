@@ -9,7 +9,7 @@ This report distinguishes implemented behavior from live, repeatable demonstrati
 | Criterion | Required evidence | Current evidence | Status |
 | --- | --- | --- | --- |
 | AC-01 | Six independent Accounts authenticate and receive role-gated actions | Alice, Bob, Carol, Dave, Erin, and Frank used separate credentials for their assigned Owner/Reviewer actions; scoped multi-role Role Assignment filtering is automated and legacy snapshots migrate in memory | Live + automated |
-| AC-02 | Six Work Items, parent Requirement, and dependency graph are visible | Dashboard and seed tests show the Requirement, six children, dependencies, responsibility, and blocking reasons; the live dashboard reconstructed all six | Live |
+| AC-02 | Six Work Items, parent Requirement, and dependency graph are visible | Dashboard and seed tests show the Requirement, children, dependencies, responsibility, and blocking reasons; a maintained Chromium E2E splits a child and verifies its visible parent relation; the live dashboard reconstructed all six top-level items | Live + browser E2E |
 | AC-03 | Concurrent claim has exactly one winner | Overlapping Alice/Bob `DES-001` claims produced one Owner (`evt-1`) and one `INVALID_STATE` rejection (`evt-2`) | Live |
 | AC-04 | Blocked developer/tester cannot claim before Acceptance | Developer items remained visibly Blocked after design Submission and moved Ready only after both Acceptances; state rejection is automated | Live + automated |
 | AC-05 | Five-scope guidance includes exact source versions | Agent Runs `run-1` through `run-6` each store Organization, Team, Project, Module, and Work Item sources, versions, and snapshot hash | Live |
@@ -38,7 +38,7 @@ This report distinguishes implemented behavior from live, repeatable demonstrati
 | 5 | Control-plane containers | `Dockerfile`, `docker-compose.yml`, deployed healthy services | Live |
 | 6 | TLS Webhook edge | `deploy/traefik/workflow-hook.yml`, valid certificate and GitHub hook | Live |
 | 7 | Sanitized Account configuration examples | `examples/accounts/*.env.example` | Present |
-| 8 | Automated unit/API/persistence/GitHub/Webhook/CLI/browser tests | 65 tests cover domain, API, persistence, GitHub, Webhook, CLI package, and dashboard HTML; GitHub Actions passes. A maintained Playwright package-based browser E2E suite remains a documented gap. | Partial to the literal browser-E2E goal |
+| 8 | Automated unit/API/persistence/GitHub/Webhook/CLI/browser tests | 64 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer lifecycle, child parent relation, role lanes, blocking, evidence, guidance, events, and metrics; GitHub Actions passes | Present |
 | 9 | End-to-end demonstration runbook | `docs/RUNBOOK.md` | Present |
 | 10 | AC-01 through AC-18 acceptance report | This document and `deliverables/test/acceptance-report.md` | Present |
 
@@ -47,6 +47,7 @@ This report distinguishes implemented behavior from live, repeatable demonstrati
 ```bash
 npm test
 npm run test:coverage
+npm run test:e2e
 npm audit --audit-level=high --registry=https://registry.npmjs.org
 docker compose --env-file .env.example config --quiet
 ```

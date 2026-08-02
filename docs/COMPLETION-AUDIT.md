@@ -18,9 +18,9 @@ No Account token, GitHub token, or Webhook secret is included in this report.
 
 | Evidence | Direct observation |
 | --- | --- |
-| Deployed application revision | `83a040a` in both deployed application directories |
-| CI | GitHub Actions run `30763871936` completed successfully for `83a040a` |
-| Local verification | 65/65 tests passed; coverage 91.67% statements, 82.76% branches, 88.37% functions, and 91.67% lines |
+| Deployed application revision | `d17186b` in both deployed application directories |
+| CI | GitHub Actions run `30764129958` completed successfully for `d17186b`, including Chromium installation and browser E2E |
+| Local verification | 64/64 unit/integration tests and 1/1 Playwright Chromium E2E passed; coverage 91.67% statements, 82.48% branches, 88.37% functions, and 91.67% lines |
 | Dependency audit | `npm audit --audit-level=high` reported 0 vulnerabilities |
 | Deployment configuration | `docker compose --env-file .env.example config --quiet` passed |
 | Completed instance | healthy; `completed | 6 tasks | 38 events | 6 runs | 14 deliveries` |
@@ -54,7 +54,7 @@ Status meanings:
 | Criterion | Status | Evidence and limits |
 | --- | --- | --- |
 | AC-01 | Live + automated | Six hashed-token Accounts completed distinct Owner and Reviewer actions. Role Assignments are first-class records, may coexist on one Account, match Organization through Work Item scopes, and are recorded by identity on new events; old single-role snapshots normalize to deterministic Project assignments. |
-| AC-02 | Live proven | Browser shows `REQ-001`, all six top-level Work Items, three role lanes, owners/reviewers, and dependencies. Child split/assignment is automated + deployed but not used on the preserved rollout. |
+| AC-02 | Live + browser E2E | Browser shows `REQ-001`, all six top-level Work Items, three role lanes, owners/reviewers, and dependencies. The maintained Chromium E2E executes a child split and verifies the visible `Parent` relation without mutating either deployed database. |
 | AC-03 | Live proven | Concurrent `DES-001` claims yielded one Owner and one `INVALID_STATE` rejection. |
 | AC-04 | Live proven | Rollout browser shows all developer/tester work Blocked before design Acceptance; claim rejection and unlock rules are automated. |
 | AC-05 | Live proven | Expanded browser evidence shows Organization, Team, Project, Module, and Work Item guidance at version 1; all six Agent Runs persist source versions and snapshot hashes. |
@@ -83,7 +83,7 @@ Status meanings:
 | 5 | Container deployment | Present + live | Two isolated healthy application/database stacks on the control-plane host |
 | 6 | TLS Webhook edge | Present + live | Public edge forwards only `/webhooks/github` to the private control plane |
 | 7 | Sanitized Account examples | Present | Real rollout credentials remain server-side with mode `600` and are not copied into this report |
-| 8 | Automated tests | **Partial to the literal goal** | Unit, API, persistence, GitHub, Webhook, CLI, and dashboard HTML coverage pass. A real Playwright package-based critical browser E2E suite is not present; current UI evidence is HTML integration tests plus a live manual browser observation. |
+| 8 | Automated tests | Present | 64 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer flow, child decomposition, role lanes, dependency blocking, verified evidence, guidance versions, events, and metrics. CI retains the HTML report, screenshot, and trace on failure. |
 | 9 | Demonstration runbook | Present | `RUNBOOK.md` covers the technical demo; `ROLLOUT.md` covers the strict two-workstation proof |
 | 10 | Acceptance report | Present | `ACCEPTANCE.md`, the test deliverable, and this stricter audit map evidence to AC-01 through AC-18 |
 
@@ -97,6 +97,7 @@ These are in GitHub `main`, CI, and both deployed instances:
 4. Server-configured trusted Project repository and base-branch enforcement.
 5. Owner-controlled child Work Item split and eligible-role assignment with inheritance, dependency separation, idempotency, and audit events.
 6. Multiple authoritative Role Assignments per Account, scoped from Organization through Work Item, with exact assignment identity in new Activity Events and legacy snapshot compatibility.
+7. A maintained Playwright Chromium E2E and CI gate that executes a scoped owner/reviewer flow and proves child-parent visibility on the dashboard.
 
 The rollout repository intentionally remains on its older application-feature baseline because its human Requirement is to implement the status capability through the workflow. The rollout control plane itself runs the current orchestration application.
 
@@ -104,9 +105,8 @@ The rollout repository intentionally remains on its older application-feature ba
 
 1. **Human rollout:** the only strict completion blocker. Workstation A must operate Alice, Carol, and Erin; workstation B must operate Bob, Dave, and Frank. Each Account needs its own clone and fresh Codex session.
 2. **Audit boundary:** authenticated domain command failures are persisted, but invalid bearer authentication and read-only policy-resolution failures are not append-only Activity Events. The goal language is broader than the current implementation.
-3. **Browser automation:** dashboard HTML has integration coverage and the deployed UI has manual browser evidence, but there is no maintained Playwright browser E2E test in the repository.
-4. **Newest live mutation evidence:** trusted-repository enforcement, enriched event envelopes, child splitting, and multiple scoped Role Assignments are tested and deployed. They were not used to mutate the preserved rollout database, and historical completed events are not backfilled.
-5. **Legacy timing history:** the completed snapshot predates persisted task creation timestamps, so its initial Blocked duration cannot be reconstructed exactly and the dashboard correctly shows `No data`. Newly seeded and dynamically split work persists the necessary facts; the rollout instance visibly reports both initial Queue and Blocked time.
+3. **Newest live mutation evidence:** trusted-repository enforcement, enriched event envelopes, child splitting, and multiple scoped Role Assignments are tested and deployed. Child splitting is exercised in the isolated browser E2E but not used to mutate the preserved rollout database, and historical completed events are not backfilled.
+4. **Legacy timing history:** the completed snapshot predates persisted task creation timestamps, so its initial Blocked duration cannot be reconstructed exactly and the dashboard correctly shows `No data`. Newly seeded and dynamically split work persists the necessary facts; the rollout instance visibly reports both initial Queue and Blocked time.
 
 ## Exact remaining acceptance run
 
