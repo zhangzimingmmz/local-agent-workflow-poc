@@ -12,8 +12,16 @@ function asJson(body) {
 }
 
 function dashboardHtml(data) {
-  const cards = data.tasks.map((task) => `<article><strong>${task.id}</strong><span>${task.title}</span><em>${task.status}</em></article>`).join('')
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Northstar Labs Workflow</title><style>body{font:16px system-ui;margin:0;background:#f4f6f8;color:#17212b}main{max-width:1100px;margin:auto;padding:32px}header{display:flex;justify-content:space-between;align-items:end}nav{display:flex;gap:24px;margin:32px 0;font-weight:700}section{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}article{background:white;border:1px solid #dce2e8;border-radius:12px;padding:18px;display:grid;gap:8px}em{font-style:normal;color:#52606d}@media(max-width:700px){section{grid-template-columns:1fr}}</style></head><body><main><header><div><small>Organization</small><h1>${data.organization.name}</h1></div><strong>${data.metrics.events} events</strong></header><nav><span>Design</span><span>Development</span><span>Testing</span></nav><section>${cards}</section></main></body></html>`
+  const roles = [
+    ['designer', 'Design'],
+    ['developer', 'Development'],
+    ['tester', 'Testing']
+  ]
+  const lanes = roles.map(([role, label]) => {
+    const cards = data.tasks.filter((task) => task.role === role).map((task) => `<article><strong>${task.id}</strong><span>${task.title}</span><em>${task.status}</em></article>`).join('')
+    return `<section data-role="${role}"><h2>${label}</h2>${cards}</section>`
+  }).join('')
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Northstar Labs Workflow</title><style>body{font:16px system-ui;margin:0;background:#f4f6f8;color:#17212b}main{max-width:1100px;margin:auto;padding:32px}header{display:flex;justify-content:space-between;align-items:end}.lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}section{display:flex;flex-direction:column;gap:16px}h2{font-size:1rem;margin:0 0 4px}article{background:white;border:1px solid #dce2e8;border-radius:12px;padding:18px;display:grid;gap:8px}em{font-style:normal;color:#52606d}@media(max-width:700px){.lanes{grid-template-columns:1fr}}</style></head><body><main><header><div><small>Organization</small><h1>${data.organization.name}</h1></div><strong>${data.metrics.events} events</strong></header><div class="lanes">${lanes}</div></main></body></html>`
 }
 
 export function buildApp({ service, users, policies, resolveEffectiveGuidance, webhook }) {
@@ -39,6 +47,7 @@ export function buildApp({ service, users, policies, resolveEffectiveGuidance, w
   })
 
   app.get('/health', async () => ({ status: 'ok' }))
+  app.get('/favicon.ico', async (_request, reply) => reply.code(204).send())
   app.get('/', async (_request, reply) => reply.type('text/html; charset=utf-8').send(dashboardHtml(service.dashboard())))
   app.get('/api/v1/me', { preHandler: authenticate }, async (request) => ({
     account: { id: request.actor.id, name: request.actor.name, role: request.actor.role }
