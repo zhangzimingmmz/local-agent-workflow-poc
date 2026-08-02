@@ -5,6 +5,7 @@ class PersistentWorkflowService {
     this.domain = domain
     this.store = store
     this.version = version
+    this.commandQueue = Promise.resolve()
   }
 
   getTask(taskId) { return this.domain.getTask(taskId) }
@@ -16,23 +17,29 @@ class PersistentWorkflowService {
   dashboard() { return this.domain.dashboard() }
 
   async claim(taskId, actorId, options) {
-    return this.#execute(() => this.domain.claim(taskId, actorId, options))
+    return this.#enqueue(() => this.domain.claim(taskId, actorId, options))
   }
 
   async start(taskId, actorId, agentRun, options) {
-    return this.#execute(() => this.domain.start(taskId, actorId, agentRun, options))
+    return this.#enqueue(() => this.domain.start(taskId, actorId, agentRun, options))
   }
 
   async submit(taskId, actorId, evidence, options) {
-    return this.#execute(() => this.domain.submit(taskId, actorId, evidence, options))
+    return this.#enqueue(() => this.domain.submit(taskId, actorId, evidence, options))
   }
 
   async review(taskId, actorId, decision, note, options) {
-    return this.#execute(() => this.domain.review(taskId, actorId, decision, note, options))
+    return this.#enqueue(() => this.domain.review(taskId, actorId, decision, note, options))
   }
 
   async integrateByPullRequest(url, sha, options) {
-    return this.#execute(() => this.domain.integrateByPullRequest(url, sha, options))
+    return this.#enqueue(() => this.domain.integrateByPullRequest(url, sha, options))
+  }
+
+  #enqueue(action) {
+    const result = this.commandQueue.then(() => this.#execute(action))
+    this.commandQueue = result.then(() => undefined, () => undefined)
+    return result
   }
 
   async #execute(action) {
