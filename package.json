@@ -1,0 +1,23 @@
+{
+  "name": "local-agent-workflow-poc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "test:coverage": "c8 --check-coverage --lines 80 --functions 80 --branches 80 --statements 80 node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "fastify": "^5.4.0",
+    "pg": "^8.16.0",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "c8": "^10.1.3",
+    "pg-mem": "^3.0.5"
+  }
+}
