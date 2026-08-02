@@ -7,6 +7,7 @@ function tokenHash(token) {
 export function workflowFixture() {
   const organization = { id: 'northstar', name: 'Northstar Labs' }
   const team = { id: 'delivery', name: 'Product Delivery' }
+  const repository = { name: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main' }
   const users = [
     { id: 'alice', name: 'Alice Product', role: 'designer', tokenHash: tokenHash('demo-alice') },
     { id: 'bob', name: 'Bob Product', role: 'designer', tokenHash: tokenHash('demo-bob') },
@@ -40,7 +41,7 @@ export function workflowFixture() {
       return { ...evidence, verified: true, verifiedAt: '2026-08-03T00:00:00.000Z' }
     }
   }
-  return { organization, team, users, tasks, verifier }
+  return { organization, team, repository, users, tasks, verifier }
 }
 
 export function validEvidence(overrides = {}) {

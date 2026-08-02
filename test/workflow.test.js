@@ -44,6 +44,32 @@ test('submission keeps the task in progress when GitHub evidence is invalid', as
   assert.equal(workflow.getTask('DES-001').status, 'in_progress')
 })
 
+test('Submission rejects a self-consistent PR outside the server-configured Project repository', async () => {
+  const fixture = workflowFixture()
+  let verificationCalls = 0
+  fixture.verifier = { async verify(evidence) { verificationCalls += 1; return evidence } }
+  const workflow = new WorkflowService(fixture)
+  workflow.claim('DES-001', 'alice')
+  workflow.start('DES-001', 'alice')
+
+  await assert.rejects(
+    workflow.submit('DES-001', 'alice', validEvidence({
+      repository: 'attacker/decoy',
+      pullRequestUrl: 'https://github.com/attacker/decoy/pull/1'
+    }), { idempotencyKey: 'wrong-repository' }),
+    (error) => error.code === 'INVALID_EVIDENCE' && /configured Project repository/.test(error.message)
+  )
+  await assert.rejects(
+    workflow.submit('DES-001', 'alice', validEvidence({ baseBranch: 'release' }), {
+      idempotencyKey: 'wrong-base-branch'
+    }),
+    (error) => error.code === 'INVALID_EVIDENCE' && /configured base branch/.test(error.message)
+  )
+
+  assert.equal(verificationCalls, 0)
+  assert.equal(workflow.getTask('DES-001').status, 'in_progress')
+})
+
 test('review requires the configured reviewer and forbids self-review', async () => {
   const fixture = workflowFixture()
   fixture.tasks[0].reviewerId = 'alice'

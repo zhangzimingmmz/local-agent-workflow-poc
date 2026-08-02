@@ -37,3 +37,12 @@ test('every seeded work item resolves guidance from all five scope levels', () =
     ])
   }
 })
+
+test('seed uses the configured Project repository instead of a product constant', () => {
+  const seed = createSeed({
+    alice: 'token-a', bob: 'token-b', carol: 'token-c',
+    dave: 'token-d', erin: 'token-e', frank: 'token-f'
+  }, { repository: { name: 'acme/widgets', baseBranch: 'release' } })
+
+  assert.deepEqual(seed.repository, { name: 'acme/widgets', baseBranch: 'release' })
+})
