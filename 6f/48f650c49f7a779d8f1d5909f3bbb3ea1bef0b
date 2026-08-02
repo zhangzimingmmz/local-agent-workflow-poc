@@ -1,0 +1,29 @@
+src/app.js
+  s_13e1caf6530d13::t_747b3b6e2cac2e 103
+src/workflow.js
+  s_13e1caf6530d13::t_747b3b6e2cac2e 78-85
+src/persistent-workflow.js
+  s_13e1caf6530d13::t_747b3b6e2cac2e 13
+test/team-workflow-artifact.test.js
+  s_13e1caf6530d13::t_d3f74c20a2d1d2 53-57,59,67-78
+.agents/skills/team-workflow/scripts/workflow.mjs
+  s_13e1caf6530d13::t_747b3b6e2cac2e 18,115,118-120
+deliverables/dev-002/team-workflow/workflow.mjs
+  s_13e1caf6530d13::t_747b3b6e2cac2e 79,81-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "6f48f650c49f7a779d8f1d5909f3bbb3ea1bef0b",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
