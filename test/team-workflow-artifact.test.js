@@ -13,5 +13,6 @@ test('DEV-002 packages Codex Skill instructions and a deterministic CLI', async 
   assert.match(cli, /idempotency-key/)
   assert.match(cli, /whoami/)
   assert.match(cli, /submit/)
+  assert.doesNotMatch(cli, /update\((?:config\.)?token\)/)
   execFileSync(process.execPath, ['--check', cliUrl.pathname])
 })

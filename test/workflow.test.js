@@ -104,10 +104,19 @@ test('an idempotency key replays one successful command and rejects reuse for an
 
   assert.deepEqual(replay, first)
   assert.equal(workflow.listEvents().filter((event) => event.type === 'TaskClaimed').length, 1)
+  assert.throws(() => workflow.start('DES-001', 'alice', {}, { idempotencyKey: 'claim-once' }),
+    (error) => error.code === 'IDEMPOTENCY_CONFLICT')
+})
+
+test('idempotency keys are scoped to an Account without exposing an Account token hash', () => {
+  const workflow = new WorkflowService(workflowFixture())
+
+  workflow.claim('DES-001', 'alice', { idempotencyKey: 'shared-client-key' })
   assert.throws(
-    () => workflow.claim('DES-001', 'bob', { idempotencyKey: 'claim-once' }),
-    (error) => error.code === 'IDEMPOTENCY_CONFLICT'
+    () => workflow.claim('DES-001', 'bob', { idempotencyKey: 'shared-client-key' }),
+    (error) => error.code === 'INVALID_STATE'
   )
+  assert.deepEqual(workflow.listEvents().map((event) => event.outcome), ['succeeded', 'rejected'])
 })
 
 test('a rejected role or state check creates one audit event without changing task state', () => {
