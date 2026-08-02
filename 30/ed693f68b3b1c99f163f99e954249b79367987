@@ -1,0 +1,37 @@
+docker-compose.yml
+  s_13e1caf6530d13::t_19ca431f3deea6 29-30
+src/server.js
+  s_13e1caf6530d13::t_19ca431f3deea6 20
+test/workflow.test.js
+  s_13e1caf6530d13::t_9be9e2201c0bcd 149
+src/seed.js
+  s_13e1caf6530d13::t_19ca431f3deea6 9-11,57
+.env.example
+  s_13e1caf6530d13::t_19ca431f3deea6 6-7
+test/fixtures.js
+  s_13e1caf6530d13::t_9be9e2201c0bcd 50
+src/persistent-workflow.js
+  s_13e1caf6530d13::t_19ca431f3deea6 70
+src/workflow.js
+  s_13e1caf6530d13::t_19ca431f3deea6 44,49,113,165-170,259
+src/config.js
+  s_13e1caf6530d13::t_19ca431f3deea6 26-29
+deploy/bootstrap-env.sh
+  s_13e1caf6530d13::t_cdd82a000a9609 4-25,47-48,52-53,66,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "30ed693f68b3b1c99f163f99e954249b79367987",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
