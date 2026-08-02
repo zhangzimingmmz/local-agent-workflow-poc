@@ -30,6 +30,63 @@ test('claiming is atomic and restricted to the required role', () => {
   assert.throws(() => workflow.claim('DES-001', 'bob'), (error) => error.code === 'INVALID_STATE')
 })
 
+test('a Work Item Owner can split and assign an inherited child Work Item to another role', () => {
+  const workflow = new WorkflowService(workflowFixture())
+  workflow.claim('DES-001', 'alice')
+  workflow.start('DES-001', 'alice')
+
+  const child = workflow.createSubtask('DES-001', 'alice', {
+    id: 'DEV-CHILD-001',
+    title: 'Implement the designed adapter',
+    role: 'developer',
+    reviewerId: 'dave',
+    assigneeId: 'carol',
+    dependencyIds: ['DES-001']
+  }, { idempotencyKey: 'split-des-001' })
+
+  assert.deepEqual(child, {
+    id: 'DEV-CHILD-001', title: 'Implement the designed adapter',
+    organizationId: 'northstar', teamId: 'delivery', projectId: 'agent-workflow', moduleId: 'workflow-core',
+    requirementId: 'REQ-001', parentId: 'DES-001', role: 'developer', reviewerId: 'dave',
+    ownerId: 'carol', dependencyIds: ['DES-001'], status: 'blocked'
+  })
+  assert.equal(workflow.listTasks('carol').some((task) => task.id === 'DEV-CHILD-001'), true)
+  assert.deepEqual(workflow.listEvents().at(-1), {
+    id: 'evt-3', correlationId: 'split-des-001', type: 'WorkItemCreated',
+    actorId: 'alice', taskId: 'DEV-CHILD-001', workItemId: 'DEV-CHILD-001', requirementId: 'REQ-001',
+    previousStatus: 'draft', status: 'blocked', outcome: 'succeeded',
+    organizationId: 'northstar', teamId: 'delivery', projectId: 'agent-workflow', moduleId: 'workflow-core',
+    parentWorkItemId: 'DES-001', assignedOwnerId: 'carol',
+    occurredAt: workflow.listEvents().at(-1).occurredAt
+  })
+})
+
+test('splitting rejects non-owners, duplicate IDs, and role-mismatched assignments without partial children', () => {
+  const workflow = new WorkflowService(workflowFixture())
+  workflow.claim('DES-001', 'alice')
+
+  assert.throws(
+    () => workflow.createSubtask('DES-001', 'bob', {
+      id: 'CHILD-001', title: 'Unauthorized child', role: 'designer', reviewerId: 'alice'
+    }, { idempotencyKey: 'split-not-owner' }),
+    (error) => error.code === 'NOT_OWNER'
+  )
+  assert.throws(
+    () => workflow.createSubtask('DES-001', 'alice', {
+      id: 'DES-001', title: 'Duplicate child', role: 'designer', reviewerId: 'bob'
+    }, { idempotencyKey: 'split-duplicate' }),
+    (error) => error.code === 'DUPLICATE_WORK_ITEM'
+  )
+  assert.throws(
+    () => workflow.createSubtask('DES-001', 'alice', {
+      id: 'CHILD-002', title: 'Wrong assignment', role: 'developer', reviewerId: 'dave', assigneeId: 'erin'
+    }, { idempotencyKey: 'split-role-mismatch' }),
+    (error) => error.code === 'ROLE_MISMATCH'
+  )
+  assert.throws(() => workflow.getTask('CHILD-001'), (error) => error.code === 'NOT_FOUND')
+  assert.throws(() => workflow.getTask('CHILD-002'), (error) => error.code === 'NOT_FOUND')
+})
+
 test('submission keeps the task in progress when GitHub evidence is invalid', async () => {
   const fixture = workflowFixture()
   fixture.verifier = { async verify() { throw new Error('commit not found') } }

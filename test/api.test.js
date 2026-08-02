@@ -74,6 +74,34 @@ test('API resolves guidance and records a claim event', async (t) => {
   assert.equal(dashboard.json().metrics.events, 1)
 })
 
+test('API lets an Owner split a Work Item and assign the child to an eligible Account', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const headers = {
+    authorization: 'Bearer demo-alice',
+    'content-type': 'application/json',
+    'idempotency-key': 'api-split-child'
+  }
+  await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/claim',
+    headers: { authorization: headers.authorization, 'idempotency-key': 'api-split-claim' }
+  })
+
+  const response = await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/subtasks', headers,
+    payload: JSON.stringify({
+      id: 'DES-001-A', title: 'Research one workflow option', role: 'designer',
+      reviewerId: 'alice', assigneeId: 'bob', dependencyIds: []
+    })
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().task.id, 'DES-001-A')
+  assert.equal(response.json().task.parentId, 'DES-001')
+  assert.equal(response.json().task.ownerId, 'bob')
+  assert.equal(response.json().task.status, 'claimed')
+})
+
 test('API drives the owner and reviewer lifecycle without exposing token hashes', async (t) => {
   const { app } = setup()
   t.after(() => app.close())

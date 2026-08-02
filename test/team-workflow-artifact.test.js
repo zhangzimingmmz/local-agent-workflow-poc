@@ -37,9 +37,15 @@ test('a fresh Codex checkout discovers the executable team-workflow Skill', asyn
 
 test('project CLI status resolves a Requirement through the unified status endpoint', async (t) => {
   let requestedUrl
-  const server = createServer((request, response) => {
+  let requestedMethod
+  let requestedBody
+  const server = createServer(async (request, response) => {
     requestedUrl = request.url
+    requestedMethod = request.method
     assert.equal(request.headers.authorization, 'Bearer account-token')
+    const chunks = []
+    for await (const chunk of request) chunks.push(chunk)
+    requestedBody = chunks.length > 0 ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : null
     response.setHeader('content-type', 'application/json')
     response.end(JSON.stringify({
       entityType: 'requirement',
@@ -76,4 +82,16 @@ test('project CLI status resolves a Requirement through the unified status endpo
     runFile(process.execPath, [projectCliUrl.pathname, 'status'], { env: childEnvironment }),
     (error) => error.code === 1 && /status requires a Requirement or Work Item ID/.test(error.stderr)
   )
+
+  await runFile(process.execPath, [
+    projectCliUrl.pathname, 'split', 'DES-001',
+    '--id', 'DES-001-A', '--title', 'Research one option', '--role', 'designer',
+    '--reviewer', 'alice', '--assignee', 'bob', '--depends-on', 'DES-002'
+  ], { env: childEnvironment })
+  assert.equal(requestedUrl, '/api/v1/tasks/DES-001/subtasks')
+  assert.equal(requestedMethod, 'POST')
+  assert.deepEqual(requestedBody, {
+    id: 'DES-001-A', title: 'Research one option', role: 'designer',
+    reviewerId: 'alice', assigneeId: 'bob', dependencyIds: ['DES-002']
+  })
 })
