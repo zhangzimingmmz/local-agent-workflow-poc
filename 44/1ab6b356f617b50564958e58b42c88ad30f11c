@@ -1,0 +1,20 @@
+test/team-workflow-artifact.test.js
+  s_13e1caf6530d13::t_9397331b206ba2 8-9,21-32
+  s_13e1caf6530d13::t_a8b6d41714490f 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "441ab6b356f617b50564958e58b42c88ad30f11c",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
