@@ -93,7 +93,10 @@ test('a Work Item Owner can split and assign an inherited child Work Item to ano
     actorId: 'alice', taskId: 'DEV-CHILD-001', workItemId: 'DEV-CHILD-001', requirementId: 'REQ-001',
     previousStatus: 'draft', status: 'blocked', outcome: 'succeeded',
     organizationId: 'northstar', teamId: 'delivery', projectId: 'agent-workflow', moduleId: 'workflow-core',
-    roleAssignment: { accountId: 'alice', role: 'designer', scope: 'project', scopeId: 'agent-workflow' },
+    roleAssignment: {
+      id: 'ra:alice:designer:project:agent-workflow',
+      accountId: 'alice', role: 'designer', scope: 'project', scopeId: 'agent-workflow'
+    },
     parentWorkItemId: 'DES-001', assignedOwnerId: 'carol',
     occurredAt: workflow.listEvents().at(-1).occurredAt
   })
@@ -298,6 +301,7 @@ test('Submission events carry hierarchy, role, Agent, Git, and guidance trace co
   assert.equal(event.requirementId, 'REQ-001')
   assert.equal(event.workItemId, 'DES-001')
   assert.deepEqual(event.roleAssignment, {
+    id: 'ra:alice:designer:project:agent-workflow',
     accountId: 'alice', role: 'designer', scope: 'project', scopeId: 'agent-workflow'
   })
   assert.equal(event.agentType, 'codex')
@@ -353,6 +357,9 @@ test('a rejected role or state check creates one audit event without changing ta
     reasonCode: 'ROLE_MISMATCH', reason: 'carol cannot claim designer work',
     occurredAt: '2026-08-03T00:00:00.000Z',
     organizationId: 'northstar', teamId: 'delivery', projectId: 'agent-workflow', moduleId: 'workflow-core',
-    roleAssignment: { accountId: 'carol', role: 'developer', scope: 'project', scopeId: 'agent-workflow' }
+    roleAssignment: {
+      id: 'ra:carol:developer:project:agent-workflow',
+      accountId: 'carol', role: 'developer', scope: 'project', scopeId: 'agent-workflow'
+    }
   })
 })
