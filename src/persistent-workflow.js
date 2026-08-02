@@ -11,6 +11,8 @@ class PersistentWorkflowService {
   getTask(taskId) { return this.domain.getTask(taskId) }
   getRequirement(requirementId) { return this.domain.getRequirement(requirementId) }
   getStatus(id) { return this.domain.getStatus(id) }
+  getAccount(actorId) { return this.domain.getAccount(actorId) }
+  getRoleAssignment(taskId, actorId) { return this.domain.getRoleAssignment(taskId, actorId) }
   listTasks(actorId) { return this.domain.listTasks(actorId) }
   listEvents() { return this.domain.listEvents() }
   listAgentRuns() { return this.domain.listAgentRuns() }
