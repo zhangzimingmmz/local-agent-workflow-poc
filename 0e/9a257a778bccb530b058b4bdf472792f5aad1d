@@ -1,0 +1,29 @@
+README.md
+  s_13e1caf6530d13::t_e0bd193a17296a 1-72
+.dockerignore
+  s_13e1caf6530d13::t_e0bd193a17296a 1-6
+docker-compose.yml
+  s_13e1caf6530d13::t_e0bd193a17296a 1-56
+.env.example
+  s_13e1caf6530d13::t_e0bd193a17296a 1-11
+Dockerfile
+  s_13e1caf6530d13::t_e0bd193a17296a 1-13
+src/server.js
+  s_13e1caf6530d13::t_e0bd193a17296a 1-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "0e9a257a778bccb530b058b4bdf472792f5aad1d",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
