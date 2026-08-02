@@ -163,8 +163,8 @@ export class WorkflowService {
     })
   }
 
-  review(taskId, actorId, decision, note = '', options = {}) {
-    return this.#runCommand('review', taskId, actorId, { decision, note }, options, () => {
+  async review(taskId, actorId, decision, note = '', options = {}) {
+    return this.#runCommandAsync('review', taskId, actorId, { decision, note }, options, async () => {
       const task = this.#task(taskId)
       this.#user(actorId)
       if (task.ownerId === actorId) throw new WorkflowError('SELF_REVIEW', 'An owner cannot review their own submission')
@@ -177,7 +177,20 @@ export class WorkflowService {
         return copy(task)
       }
 
-      this.#transition(task, 'accepted', 'TaskAccepted', actorId, { note }, options.idempotencyKey)
+      let currentEvidence
+      try {
+        currentEvidence = await this.verifier.verify(task.evidence)
+      } catch (error) {
+        throw new WorkflowError('INVALID_EVIDENCE', error.message, error)
+      }
+      if (task.evidence.headSha && currentEvidence.headSha !== task.evidence.headSha) {
+        throw new WorkflowError('EVIDENCE_CHANGED', 'Pull-request head changed after submission; submit the current evidence before acceptance')
+      }
+      task.evidence = currentEvidence
+      this.#transition(task, 'accepted', 'TaskAccepted', actorId, {
+        note,
+        evidenceReverifiedAt: currentEvidence.verifiedAt
+      }, options.idempotencyKey)
       this.#unblockDependents(actorId, options.idempotencyKey)
       return copy(task)
     })

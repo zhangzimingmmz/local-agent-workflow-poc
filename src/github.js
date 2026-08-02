@@ -56,6 +56,7 @@ export class GitHubEvidenceVerifier {
       verified: true,
       pullRequestNumber: reference.number,
       headRepository: pullRequest.head.repo.full_name,
+      headSha: pullRequest.head.sha,
       merged: Boolean(pullRequest.merged),
       mergeCommitSha: pullRequest.merge_commit_sha ?? null,
       verifiedAt: new Date().toISOString()

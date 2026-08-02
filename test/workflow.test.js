@@ -10,7 +10,7 @@ test('an eligible owner submits verified work and acceptance unlocks a dependenc
   assert.equal(workflow.claim('DES-001', 'alice').status, 'claimed')
   assert.equal(workflow.start('DES-001', 'alice').status, 'in_progress')
   assert.equal((await workflow.submit('DES-001', 'alice', validEvidence())).status, 'submitted')
-  assert.equal(workflow.review('DES-001', 'bob', 'accept', 'Testable design').status, 'accepted')
+  assert.equal((await workflow.review('DES-001', 'bob', 'accept', 'Testable design')).status, 'accepted')
   assert.equal(workflow.getTask('DEV-001').status, 'ready')
   assert.deepEqual(workflow.listEvents().map((event) => event.type), [
     'TaskClaimed', 'TaskStarted', 'TaskSubmitted', 'TaskAccepted', 'TaskUnblocked'
@@ -52,8 +52,8 @@ test('review requires the configured reviewer and forbids self-review', async ()
   workflow.start('DES-001', 'alice')
   await workflow.submit('DES-001', 'alice', validEvidence())
 
-  assert.throws(() => workflow.review('DES-001', 'alice', 'accept'), (error) => error.code === 'SELF_REVIEW')
-  assert.throws(() => workflow.review('DES-001', 'bob', 'accept'), (error) => error.code === 'NOT_REVIEWER')
+  await assert.rejects(workflow.review('DES-001', 'alice', 'accept'), (error) => error.code === 'SELF_REVIEW')
+  await assert.rejects(workflow.review('DES-001', 'bob', 'accept'), (error) => error.code === 'NOT_REVIEWER')
 })
 
 test('acceptance re-verifies GitHub evidence and rejects a changed pull-request head', async () => {
@@ -87,7 +87,7 @@ test('only an accepted task can become integrated and complete its requirement',
   await workflow.submit('DES-001', 'alice', validEvidence())
 
   assert.throws(() => workflow.integrateByPullRequest(validEvidence().pullRequestUrl, 'merge-sha'), (error) => error.code === 'INVALID_STATE')
-  workflow.review('DES-001', 'bob', 'accept')
+  await workflow.review('DES-001', 'bob', 'accept')
   assert.equal(workflow.integrateByPullRequest(validEvidence().pullRequestUrl, 'merge-sha').status, 'integrated')
   assert.equal(workflow.getRequirement('REQ-001').status, 'completed')
 })
