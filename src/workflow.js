@@ -194,6 +194,20 @@ export class WorkflowService {
     return this.agentRuns.map(copy)
   }
 
+  rejectAction(command, taskId, actorId, error, options = {}) {
+    const rejection = error instanceof WorkflowError
+      ? error
+      : new WorkflowError(error.code ?? 'ACTION_REJECTED', error.message, error)
+    return this.#runCommand(
+      command,
+      taskId,
+      actorId,
+      { reasonCode: rejection.code, reason: rejection.message },
+      options,
+      () => { throw rejection }
+    )
+  }
+
   createSubtask(parentTaskId, actorId, input, options = {}) {
     return this.#runCommand('split', parentTaskId, actorId, input, options, () => {
       const parent = this.#ownedTask(parentTaskId, actorId)

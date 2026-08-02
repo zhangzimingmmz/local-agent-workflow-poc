@@ -119,11 +119,22 @@ export function buildApp({
   app.post('/api/v1/tasks/:taskId/start', commandHandlers, async (request) => {
     const body = asJson(request.body)
     const task = service.getTask(request.params.taskId)
+    let guidanceSnapshot
+    try {
+      guidanceSnapshot = guidance(task, request.actor.id)
+    } catch (error) {
+      if (error instanceof PolicyError) {
+        await service.rejectAction('start', task.id, request.actor.id, error, {
+          idempotencyKey: request.idempotencyKey
+        })
+      }
+      throw error
+    }
     const started = await service.start(request.params.taskId, request.actor.id, {
       agentType: body.agentType ?? 'codex',
       repository: body.repository,
       branch: body.branch,
-      guidanceSnapshot: guidance(task, request.actor.id)
+      guidanceSnapshot
     }, { idempotencyKey: request.idempotencyKey })
     return { task: started, agentRun: service.getAgentRunForTask(task.id, request.actor.id) }
   })

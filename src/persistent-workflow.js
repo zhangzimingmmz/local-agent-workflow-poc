@@ -31,6 +31,10 @@ class PersistentWorkflowService {
     return this.#enqueue(() => this.domain.createSubtask(parentTaskId, actorId, input, options))
   }
 
+  async rejectAction(command, taskId, actorId, error, options) {
+    return this.#enqueue(() => this.domain.rejectAction(command, taskId, actorId, error, options))
+  }
+
   async submit(taskId, actorId, evidence, options) {
     return this.#enqueue(() => this.domain.submit(taskId, actorId, evidence, options))
   }
