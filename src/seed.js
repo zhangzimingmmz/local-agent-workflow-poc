@@ -15,7 +15,10 @@ export function createSeed(tokens) {
     account('erin', 'Erin Tester', 'tester', tokens),
     account('frank', 'Frank Tester', 'tester', tokens)
   ]
-  const common = { requirementId: 'REQ-001', projectId: 'agent-workflow', moduleId: 'workflow-core', ownerId: null }
+  const common = {
+    requirementId: 'REQ-001', parentId: 'REQ-001', projectId: 'agent-workflow',
+    moduleId: 'workflow-core', ownerId: null
+  }
   const tasks = [
     { ...common, id: 'DES-001', title: 'Problem and solution design', role: 'designer', reviewerId: 'bob', status: 'ready', dependencyIds: [] },
     { ...common, id: 'DES-002', title: 'Executable acceptance criteria', role: 'designer', reviewerId: 'alice', status: 'ready', dependencyIds: [] },

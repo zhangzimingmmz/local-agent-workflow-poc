@@ -11,6 +11,16 @@ function asJson(body) {
   return body
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character])
+}
+
+function displayRate(value) {
+  return value === null ? 'No data' : `${Math.round(value * 100)}%`
+}
+
 function dashboardHtml(data) {
   const roles = [
     ['designer', 'Design'],
@@ -18,10 +28,18 @@ function dashboardHtml(data) {
     ['tester', 'Testing']
   ]
   const lanes = roles.map(([role, label]) => {
-    const cards = data.tasks.filter((task) => task.role === role).map((task) => `<article><strong>${task.id}</strong><span>${task.title}</span><em>${task.status}</em></article>`).join('')
+    const cards = data.tasks.filter((task) => task.role === role).map((task) => {
+      const dependencies = task.dependencyIds.map((id) => `<span class="chip" data-dependency="${escapeHtml(id)}">${escapeHtml(id)}</span>`).join('') || '<span class="muted">None</span>'
+      const artifacts = task.evidence?.artifacts?.map((artifact) => `<li>${escapeHtml(artifact.kind)}: <code>${escapeHtml(artifact.path)}</code></li>`).join('') ?? ''
+      const evidence = task.evidence ? `<details><summary>Verified Git evidence</summary><p><code>${escapeHtml(task.evidence.commitSha)}</code></p><p>${escapeHtml(task.evidence.pullRequestUrl)}</p><ul>${artifacts}</ul></details>` : '<span class="muted">No verified evidence</span>'
+      return `<article data-task="${escapeHtml(task.id)}"><div class="card-title"><strong>${escapeHtml(task.id)}</strong><em>${escapeHtml(task.status)}</em></div><span>${escapeHtml(task.title)}</span><dl><div><dt>Owner</dt><dd>${escapeHtml(task.ownerId || 'Unassigned')}</dd></div><div aria-label="Reviewer: ${escapeHtml(task.reviewerId)}"><dt>Reviewer</dt><dd>${escapeHtml(task.reviewerId)}</dd></div></dl><p>Dependencies: ${dependencies}</p>${task.blockingReason ? `<p class="blocked">${escapeHtml(task.blockingReason)}</p>` : ''}${evidence}</article>`
+    }).join('')
     return `<section data-role="${role}"><h2>${label}</h2>${cards}</section>`
   }).join('')
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Northstar Labs Workflow</title><style>body{font:16px system-ui;margin:0;background:#f4f6f8;color:#17212b}main{max-width:1100px;margin:auto;padding:32px}header{display:flex;justify-content:space-between;align-items:end}.lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}section{display:flex;flex-direction:column;gap:16px}h2{font-size:1rem;margin:0 0 4px}article{background:white;border:1px solid #dce2e8;border-radius:12px;padding:18px;display:grid;gap:8px}em{font-style:normal;color:#52606d}@media(max-width:700px){.lanes{grid-template-columns:1fr}}</style></head><body><main><header><div><small>Organization</small><h1>${data.organization.name}</h1></div><strong>${data.metrics.events} events</strong></header><div class="lanes">${lanes}</div></main></body></html>`
+  const requirements = data.requirements.map((requirement) => `<div data-requirement="${escapeHtml(requirement.id)}"><strong>${escapeHtml(requirement.id)}</strong> · ${escapeHtml(requirement.status)}</div>`).join('')
+  const timeline = data.events.map((event) => `<li><time>${escapeHtml(event.occurredAt)}</time><strong>${escapeHtml(event.type)}</strong><span>${escapeHtml(event.taskId || event.requirementId)} · ${escapeHtml(event.actorId)} · ${escapeHtml(event.outcome)}</span>${event.reason ? `<small>${escapeHtml(event.reasonCode)}: ${escapeHtml(event.reason)}</small>` : ''}</li>`).join('') || '<li class="muted">No activity yet</li>'
+  const metrics = data.metrics
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Northstar Labs Workflow</title><style>:root{color-scheme:light}*{box-sizing:border-box}body{font:15px system-ui;margin:0;background:#f4f6f8;color:#17212b}main{max-width:1240px;margin:auto;padding:32px}header,.card-title{display:flex;justify-content:space-between;align-items:center}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.metric,article,.panel{background:white;border:1px solid #dce2e8;border-radius:12px;padding:18px}.metric{display:grid;gap:6px}.metric strong{font-size:1.4rem}.lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}.lanes section{display:flex;flex-direction:column;gap:16px}h2{font-size:1rem;margin:0}article{display:grid;gap:10px}em{font-style:normal;color:#52606d}dl{display:grid;grid-template-columns:1fr 1fr;margin:0}dt{font-size:.75rem;color:#66788a}dd{margin:2px 0}.chip{background:#e8eef5;border-radius:999px;padding:3px 8px;margin-left:4px}.blocked{color:#9b2c2c}.muted{color:#718096}.panel{margin-top:24px}.timeline{list-style:none;padding:0;display:grid;gap:12px}.timeline li{display:grid;grid-template-columns:190px 170px 1fr;gap:10px;border-bottom:1px solid #edf1f5;padding-bottom:10px}.timeline small{grid-column:2/4;color:#9b2c2c}code{overflow-wrap:anywhere}@media(max-width:800px){.lanes,.summary{grid-template-columns:1fr}.timeline li{grid-template-columns:1fr}}</style></head><body><main><header><div><small>Organization</small><h1>${escapeHtml(data.organization.name)}</h1>${requirements}</div><strong>${metrics.events} events</strong></header><section id="workflow-metrics" class="summary"><div class="metric"><span>Evidence verified</span><strong>${displayRate(metrics.evidenceVerificationRate)}</strong></div><div class="metric"><span>Submission accepted</span><strong>${displayRate(metrics.submissionAcceptanceRate)}</strong></div><div class="metric"><span>Rework</span><strong>${metrics.rework.total}</strong></div><div class="metric"><span>Review time</span><strong>${metrics.flow.reviewMs === null ? 'No data' : `${metrics.flow.reviewMs} ms`}</strong></div></section><div class="lanes">${lanes}</div><section class="panel"><h2>Activity Events</h2><ol id="activity-timeline" class="timeline">${timeline}</ol></section></main></body></html>`
 }
 
 export function buildApp({

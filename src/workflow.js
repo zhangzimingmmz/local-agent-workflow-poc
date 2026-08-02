@@ -14,6 +14,22 @@ function signature(value) {
   return JSON.stringify(value)
 }
 
+function elapsed(events, starts, ends) {
+  let total = 0
+  let samples = 0
+  for (let index = 0; index < events.length; index += 1) {
+    const start = events[index]
+    if (!starts.includes(start.type) || !start.taskId) continue
+    const end = events.slice(index + 1).find((candidate) => (
+      candidate.taskId === start.taskId && ends.includes(candidate.type)
+    ))
+    if (!end) continue
+    total += Math.max(0, new Date(end.occurredAt).getTime() - new Date(start.occurredAt).getTime())
+    samples += 1
+  }
+  return samples === 0 ? null : total
+}
+
 export class WorkflowService {
   constructor({
     users, tasks, requirements = [], events = [], agentRuns = [], commandRecords = [], verifier,
@@ -171,13 +187,45 @@ export class WorkflowService {
   dashboard() {
     const byStatus = {}
     for (const task of this.tasks.values()) byStatus[task.status] = (byStatus[task.status] ?? 0) + 1
+    const tasks = [...this.tasks.values()].map((task) => ({
+      ...copy(task),
+      blockingReason: task.status === 'blocked'
+        ? `Blocked by ${task.dependencyIds.filter((id) => !['accepted', 'integrated'].includes(this.#task(id).status)).join(', ')}`
+        : null
+    }))
+    const submitted = this.events.filter((event) => event.type === 'TaskSubmitted').length
+    const evidenceRejected = this.events.filter((event) => (
+      event.type === 'ActionRejected' && event.command === 'submit' && event.reasonCode === 'INVALID_EVIDENCE'
+    )).length
+    const accepted = this.events.filter((event) => event.type === 'TaskAccepted').length
+    const rejected = this.events.filter((event) => event.type === 'TaskRejected')
+    const reworkByStage = {}
+    const reworkByReason = {}
+    for (const event of rejected) {
+      const role = this.tasks.get(event.taskId)?.role ?? 'unknown'
+      reworkByStage[role] = (reworkByStage[role] ?? 0) + 1
+      const reason = event.note || 'unspecified'
+      reworkByReason[reason] = (reworkByReason[reason] ?? 0) + 1
+    }
     return {
       organization: { id: 'northstar', name: 'Northstar Labs' },
       requirements: [...this.requirements.values()].map(copy),
-      tasks: [...this.tasks.values()].map(copy),
+      tasks,
       agentRuns: this.listAgentRuns(),
       events: this.listEvents(),
-      metrics: { events: this.events.length, tasksByStatus: byStatus }
+      metrics: {
+        events: this.events.length,
+        tasksByStatus: byStatus,
+        flow: {
+          activeMs: elapsed(this.events, ['TaskStarted'], ['TaskSubmitted']),
+          queueMs: elapsed(this.events, ['TaskUnblocked'], ['TaskClaimed']),
+          reviewMs: elapsed(this.events, ['TaskSubmitted'], ['TaskAccepted', 'TaskRejected']),
+          blockedMs: elapsed(this.events, ['TaskBlocked'], ['TaskUnblocked'])
+        },
+        evidenceVerificationRate: submitted + evidenceRejected === 0 ? null : submitted / (submitted + evidenceRejected),
+        submissionAcceptanceRate: accepted + rejected.length === 0 ? null : accepted / (accepted + rejected.length),
+        rework: { total: rejected.length, byStage: reworkByStage, byReason: reworkByReason }
+      }
     }
   }
 

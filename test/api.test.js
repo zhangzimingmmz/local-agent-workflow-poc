@@ -10,6 +10,7 @@ import { workflowFixture } from './fixtures.js'
 
 function setup(options = {}) {
   const fixture = workflowFixture()
+  fixture.clock = () => new Date('2026-08-03T00:00:00.000Z')
   const service = new WorkflowService(fixture)
   const policies = [{ id: 'organization', scope: 'organization', scopeId: 'northstar', role: '*', version: 1, rules: { branchPrefix: 'work/' } }]
   const webhook = new WebhookProcessor({ secret: 'test-secret', inbox: new InMemoryWebhookInbox(), onEvent: async () => {} })
