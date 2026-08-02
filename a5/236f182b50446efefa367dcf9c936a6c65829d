@@ -1,0 +1,29 @@
+src/workflow.js
+  s_13e1caf6530d13::t_1181c83591fb61 1-171
+src/policy.js
+  s_13e1caf6530d13::t_1181c83591fb61 1-3,11-28,30-57
+  s_13e1caf6530d13::t_4d461bc154e88e 4-10,29
+src/github.js
+  s_13e1caf6530d13::t_1181c83591fb61 1-72
+src/webhook.js
+  s_13e1caf6530d13::t_1181c83591fb61 1-35,37-89
+  s_13e1caf6530d13::t_4d461bc154e88e 36
+src/app.js
+  s_13e1caf6530d13::t_1181c83591fb61 1-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "a5236f182b50446efefa367dcf9c936a6c65829d",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
