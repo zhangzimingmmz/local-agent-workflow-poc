@@ -14,6 +14,8 @@ A vendor-neutral proof of concept for human teams using local Codex agents, GitH
 
 See [the detailed goals](./docs/GOALS.md) and [domain language](./CONTEXT.md).
 
+Operators can follow the [six-account demonstration runbook](./docs/RUNBOOK.md), [deployment and recovery guide](./docs/DEPLOYMENT.md), and [acceptance report](./docs/ACCEPTANCE.md).
+
 ## Architecture
 
 ```text

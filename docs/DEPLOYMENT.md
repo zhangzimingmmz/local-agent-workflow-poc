@@ -34,3 +34,39 @@ Expected result: `401` with `INVALID_SIGNATURE`. A `2xx` response would indicate
 ## Account handoff
 
 `deploy/bootstrap-env.sh` creates one root-readable file per virtual Account under `/opt/local-agent-workflow-poc/accounts/`. Give each user only their own file through a secure channel. Do not commit or paste these values into issues, pull requests, or chat.
+
+Sanitized per-account templates are available under `examples/accounts/`. They contain placeholders only.
+
+## Backup and restore
+
+Create an external, access-controlled backup directory and run:
+
+```bash
+mkdir -p "/opt/workflow-backups"
+chmod 700 "/opt/workflow-backups"
+"deploy/backup.sh" "/opt/workflow-backups"
+```
+
+The script creates a mode-`600` PostgreSQL custom-format dump. Copy it off the host according to the operator's retention policy.
+
+Restore is destructive and stops the application while replacing workflow tables. First take a new backup, verify the target filename, then run:
+
+```bash
+"deploy/restore.sh" "/opt/workflow-backups/<verified-backup>.dump" --confirm-replace-workflow-database
+curl "http://<control-plane-tailscale-ip>:8088/health"
+```
+
+Validate Account authentication, Work Item state, Activity Event count, Agent Runs, policy snapshots, and Webhook delivery count after restoration.
+
+## Application rollback
+
+Application rollback does not roll back PostgreSQL automatically.
+
+1. Record the currently deployed commit and take a database backup.
+2. Fetch the repository and check out the last known-good commit explicitly.
+3. Run `npm test`, `npm run test:coverage`, and `docker compose config --quiet`.
+4. Run `docker compose up --build -d` and wait for both services to become healthy.
+5. Verify `/health`, one authenticated read request, the dashboard, and a signed test delivery.
+6. If the release introduced an incompatible schema change, use the separately reviewed restore procedure; otherwise keep the newer database state.
+
+Never delete the Compose volume as part of an application rollback.
