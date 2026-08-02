@@ -18,8 +18,8 @@ No Account token, GitHub token, or Webhook secret is included in this report.
 
 | Evidence | Direct observation |
 | --- | --- |
-| Deployed application revision | `104bad2` on GitHub `main` at verification time and in both deployed application directories |
-| CI | GitHub Actions run `30763276684` completed successfully for `104bad2` |
+| Deployed application revision | `83a040a` in both deployed application directories |
+| CI | GitHub Actions run `30763871936` completed successfully for `83a040a` |
 | Local verification | 65/65 tests passed; coverage 91.67% statements, 82.76% branches, 88.37% functions, and 91.67% lines |
 | Dependency audit | `npm audit --audit-level=high` reported 0 vulnerabilities |
 | Deployment configuration | `docker compose --env-file .env.example config --quiet` passed |
@@ -65,7 +65,7 @@ Status meanings:
 | AC-10 | Live proven | Accepted work was integrated only after signed merge delivery or reconciliation plus GitHub API verification. |
 | AC-11 | Live proven | Six Integrated Work Items produced `RequirementCompleted` for `REQ-001`. |
 | AC-12 | Live + automated | Browser and PostgreSQL show 38 ordered success/rejection events. New Submission envelopes include hierarchy, role, Agent, Git, and guidance context in tests; old events are not retroactively rewritten. Authentication failures and read-only policy-resolution failures are not currently persisted as Activity Events. |
-| AC-13 | Live proven | Restart preserved the completed fingerprint; backup/restore was also verified in an isolated database. Both current instances survived deployment of `104bad2` without state changes. |
+| AC-13 | Live proven | Restart preserved the completed fingerprint; backup/restore was also verified in an isolated database. Both current instances survived deployment of `83a040a` without state changes. |
 | AC-14 | Live proven with noted browser path | Direct Tailscale health checks pass; browser content was verified through a temporary SSH-over-Tailscale loopback forward; database is container-private and only the Webhook route is public. |
 | AC-15 | **Human rollout open** | Skill discovery, CLI behavior, status lookup, idempotent retry, and six technical flows are proven. Two human workstations with separate fresh Codex sessions remain mandatory. |
 | AC-16 | Live proven | Invalid/missing signature returns `401 INVALID_SIGNATURE` before trusted persistence; raw-body behavior is automated. |
