@@ -99,7 +99,10 @@ test('dashboard HTML presents the requirement and role lanes', async (t) => {
   const response = await app.inject({ method: 'GET', url: '/' })
   assert.equal(response.statusCode, 200)
   assert.match(response.body, /Northstar Labs/)
-  assert.match(response.body, /Design.*Development.*Testing/s)
+  assert.match(response.body, /data-role="designer".*DES-001/s)
+  assert.match(response.body, /data-role="developer".*DEV-001/s)
+  assert.match(response.body, /data-role="tester".*TST-001/s)
+  assert.equal((await app.inject({ method: 'GET', url: '/favicon.ico' })).statusCode, 204)
 })
 
 test('API awaits a persistent service before serializing a state change', async (t) => {
