@@ -1,11 +1,17 @@
+import { createHash } from 'node:crypto'
+
+function tokenHash(token) {
+  return createHash('sha256').update(token).digest('hex')
+}
+
 export function workflowFixture() {
   const users = [
-    { id: 'alice', name: 'Alice Product', role: 'designer', token: 'demo-alice' },
-    { id: 'bob', name: 'Bob Product', role: 'designer', token: 'demo-bob' },
-    { id: 'carol', name: 'Carol Developer', role: 'developer', token: 'demo-carol' },
-    { id: 'dave', name: 'Dave Developer', role: 'developer', token: 'demo-dave' },
-    { id: 'erin', name: 'Erin Tester', role: 'tester', token: 'demo-erin' },
-    { id: 'frank', name: 'Frank Tester', role: 'tester', token: 'demo-frank' }
+    { id: 'alice', name: 'Alice Product', role: 'designer', tokenHash: tokenHash('demo-alice') },
+    { id: 'bob', name: 'Bob Product', role: 'designer', tokenHash: tokenHash('demo-bob') },
+    { id: 'carol', name: 'Carol Developer', role: 'developer', tokenHash: tokenHash('demo-carol') },
+    { id: 'dave', name: 'Dave Developer', role: 'developer', tokenHash: tokenHash('demo-dave') },
+    { id: 'erin', name: 'Erin Tester', role: 'tester', tokenHash: tokenHash('demo-erin') },
+    { id: 'frank', name: 'Frank Tester', role: 'tester', tokenHash: tokenHash('demo-frank') }
   ]
   const tasks = [
     {

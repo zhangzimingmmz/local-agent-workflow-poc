@@ -42,6 +42,34 @@ test('API resolves guidance and records a claim event', async (t) => {
   assert.equal(dashboard.json().metrics.events, 1)
 })
 
+test('API drives the owner and reviewer lifecycle without exposing token hashes', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const alice = { authorization: 'Bearer demo-alice', 'content-type': 'application/json' }
+  const bob = { authorization: 'Bearer demo-bob', 'content-type': 'application/json' }
+
+  assert.equal((await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers: alice })).statusCode, 200)
+  assert.equal((await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/start', headers: alice })).json().task.status, 'in_progress')
+  const submission = await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/submit', headers: alice,
+    payload: JSON.stringify({
+      repository: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main',
+      branch: 'work/DES-001-design', commitSha: 'a'.repeat(40),
+      pullRequestUrl: 'https://github.com/zhangzimingmmz/local-agent-workflow-poc/pull/1',
+      artifacts: [{ kind: 'design', path: 'docs/design.md' }]
+    })
+  })
+  assert.equal(submission.json().task.status, 'submitted')
+  assert.equal((await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/review', headers: bob,
+    payload: JSON.stringify({ decision: 'accept', note: 'Ready for development' })
+  })).json().task.status, 'accepted')
+
+  const detail = await app.inject({ method: 'GET', url: '/api/v1/tasks/DES-001', headers: alice })
+  assert.equal(detail.statusCode, 200)
+  assert.equal('tokenHash' in detail.json().task, false)
+})
+
 test('public webhook endpoint accepts a valid raw signed payload without user auth', async (t) => {
   const { app } = setup()
   t.after(() => app.close())
