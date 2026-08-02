@@ -1,0 +1,22 @@
+test/persistent-workflow.test.js
+  s_13e1caf6530d13::t_958d9add6d8bbf 1-41
+test/github-event.test.js
+  s_13e1caf6530d13::t_958d9add6d8bbf 4,31-45
+  s_13e1caf6530d13::t_88c616bd3946f6 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "053079cda6868ea785062dafc3b61bc91194a727",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
