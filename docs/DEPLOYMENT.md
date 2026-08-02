@@ -4,14 +4,16 @@ The control plane runs on a private Tailscale host. A separate public Traefik ho
 
 ## Control plane
 
-Clone the repository to `/opt/local-agent-workflow-poc`, then generate runtime secrets once:
+Clone the repository to `/opt/local-agent-workflow-poc`, then generate runtime secrets and bind the workflow to one trusted GitHub Project repository. Replace the repository and Tailscale address placeholders before running the command:
 
 ```bash
 chmod +x "deploy/bootstrap-env.sh"
-"deploy/bootstrap-env.sh" "/opt/local-agent-workflow-poc"
+"deploy/bootstrap-env.sh" "/opt/local-agent-workflow-poc" "<github-owner/repository>" "8088" "main" "<control-plane-tailscale-ip>"
 docker compose config --quiet
 docker compose up --build -d
 ```
+
+The generated `WORKFLOW_REPOSITORY` and `WORKFLOW_BASE_BRANCH` values are server-side evidence boundaries. A Submission from another repository or base branch is rejected even when its PR is otherwise self-consistent. Use a separate target directory, port, database volume, and Account files for each isolated demonstration.
 
 Verify from another Tailscale machine:
 
