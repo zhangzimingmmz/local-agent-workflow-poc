@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test",
-    "test:coverage": "c8 --check-coverage --lines 80 --functions 80 --branches 80 --statements 80 node --test"
+    "test": "node --test test/*.test.js",
+    "test:coverage": "c8 --check-coverage --lines 80 --functions 80 --branches 80 --statements 80 node --test test/*.test.js",
+    "test:e2e": "playwright test"
   },
   "engines": {
     "node": ">=22"
@@ -17,6 +18,7 @@
     "yaml": "^2.8.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "c8": "^10.1.3",
     "pg-mem": "^3.0.5"
   }
