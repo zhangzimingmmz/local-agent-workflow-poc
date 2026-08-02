@@ -40,6 +40,9 @@ export function buildApp({ service, users, policies, resolveEffectiveGuidance, w
 
   app.get('/health', async () => ({ status: 'ok' }))
   app.get('/', async (_request, reply) => reply.type('text/html; charset=utf-8').send(dashboardHtml(service.dashboard())))
+  app.get('/api/v1/me', { preHandler: authenticate }, async (request) => ({
+    account: { id: request.actor.id, name: request.actor.name, role: request.actor.role }
+  }))
   app.get('/api/v1/tasks', { preHandler: authenticate }, async (request) => ({ tasks: service.listTasks(request.actor.id) }))
   app.get('/api/v1/tasks/:taskId/guidance', { preHandler: authenticate }, async (request) => {
     const task = service.getTask(request.params.taskId)
