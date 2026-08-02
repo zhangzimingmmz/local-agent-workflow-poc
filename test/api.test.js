@@ -229,3 +229,36 @@ test('health reports database readiness and returns 503 when the dependency fail
   assert.equal(response.statusCode, 503)
   assert.deepEqual(response.json(), { status: 'unavailable', dependencies: { database: 'error' } })
 })
+
+test('dashboard lanes and policy context come from organization configuration and task roles', async (t) => {
+  const fixture = workflowFixture()
+  fixture.organization = { id: 'acme', name: 'Acme Corporation' }
+  fixture.team = { id: 'platform', name: 'Platform Team' }
+  fixture.users[0].role = 'analyst'
+  fixture.tasks[0].role = 'analyst'
+  fixture.tasks[0].organizationId = 'acme'
+  fixture.tasks[0].teamId = 'platform'
+  const service = new WorkflowService(fixture)
+  const policies = [{
+    id: 'acme-policy', scope: 'organization', scopeId: 'acme', role: 'analyst',
+    version: 3, rules: { configuredCompany: true }
+  }]
+  const app = buildApp({
+    service, users: fixture.users, policies, resolveEffectiveGuidance,
+    organization: fixture.organization, team: fixture.team,
+    webhook: new WebhookProcessor({ secret: 'test-secret', inbox: new InMemoryWebhookInbox(), onEvent: async () => {} })
+  })
+  t.after(() => app.close())
+
+  const page = await app.inject({ method: 'GET', url: '/' })
+  assert.match(page.body, /Acme Corporation/)
+  assert.match(page.body, /data-role="analyst"/)
+  assert.doesNotMatch(page.body, /Northstar Labs/)
+
+  const guidance = await app.inject({
+    method: 'GET', url: '/api/v1/tasks/DES-001/guidance',
+    headers: { authorization: 'Bearer demo-alice' }
+  })
+  assert.equal(guidance.json().rules.configuredCompany, true)
+  assert.equal(guidance.json().sources[0].version, 3)
+})
