@@ -38,6 +38,14 @@ test('Postgres webhook inbox deduplicates deliveries and persists processing sta
   assert.equal(await inbox.putIfAbsent(delivery), true)
   assert.equal(await inbox.putIfAbsent(delivery), false)
   assert.equal((await inbox.pending()).length, 1)
-  await inbox.update(delivery.id, { status: 'processed', attempts: 1, processedAt: '2026-08-03T00:00:01.000Z' })
+  await inbox.update(delivery.id, {
+    status: 'failed', attempts: 1, nextRetryAt: '2026-08-03T00:00:10.000Z', lastError: 'temporary'
+  })
+  assert.equal((await inbox.pending('2026-08-03T00:00:09.000Z')).length, 0)
+  assert.equal((await inbox.pending('2026-08-03T00:00:10.000Z')).length, 1)
+  await inbox.update(delivery.id, {
+    status: 'processed', attempts: 2, processedAt: '2026-08-03T00:00:11.000Z', nextRetryAt: null
+  })
   assert.equal((await inbox.list())[0].status, 'processed')
+  assert.equal((await inbox.list())[0].nextRetryAt, null)
 })

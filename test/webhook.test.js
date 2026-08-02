@@ -48,3 +48,35 @@ test('processing a merged pull request invokes the integration handler exactly o
   assert.equal(calls.length, 1)
   assert.equal(calls[0].payload.pull_request.merged, true)
 })
+
+test('failed Webhook processing persists exponential retry time and skips work until due', async () => {
+  let now = new Date('2026-08-03T00:00:00.000Z')
+  let calls = 0
+  const inbox = new InMemoryWebhookInbox()
+  const processor = new WebhookProcessor({
+    secret: 'test-secret', inbox, clock: () => now, retryBaseMs: 1000,
+    onEvent: async () => {
+      calls += 1
+      if (calls < 3) throw new Error('temporary GitHub failure')
+    }
+  })
+  const body = Buffer.from('{}')
+  await processor.receive({
+    'x-hub-signature-256': signed('test-secret', body),
+    'x-github-delivery': 'delivery-retry', 'x-github-event': 'pull_request'
+  }, body)
+
+  assert.equal(await processor.processPending(), 0)
+  assert.equal(calls, 1)
+  assert.equal(inbox.list()[0].nextRetryAt, '2026-08-03T00:00:01.000Z')
+  assert.equal(await processor.processPending(), 0)
+  assert.equal(calls, 1)
+
+  now = new Date('2026-08-03T00:00:01.000Z')
+  assert.equal(await processor.processPending(), 0)
+  assert.equal(inbox.list()[0].nextRetryAt, '2026-08-03T00:00:03.000Z')
+  now = new Date('2026-08-03T00:00:03.000Z')
+  assert.equal(await processor.processPending(), 1)
+  assert.equal(inbox.list()[0].nextRetryAt, null)
+  assert.equal(inbox.list()[0].attempts, 3)
+})
