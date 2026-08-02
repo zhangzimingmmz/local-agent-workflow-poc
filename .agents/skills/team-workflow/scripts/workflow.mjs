@@ -15,7 +15,7 @@ Commands:
   whoami
   list
   show <work-item-id>
-  status <work-item-id>
+  status <requirement-or-work-item-id>
   claim <work-item-id>
   start <work-item-id>
   policy <work-item-id>
@@ -112,9 +112,12 @@ async function run(argv) {
   let result
   if (command === 'whoami') result = await request('/api/v1/me')
   else if (command === 'list') result = await request('/api/v1/tasks')
-  else if (command === 'show' || command === 'status') {
+  else if (command === 'show') {
     if (!id) throw new Error(`${command} requires a work item ID`)
     result = await request(`/api/v1/tasks/${encodeURIComponent(id)}`)
+  } else if (command === 'status') {
+    if (!id) throw new Error('status requires a Requirement or Work Item ID')
+    result = await request(`/api/v1/status/${encodeURIComponent(id)}`)
   } else if (command === 'policy') {
     if (!id) throw new Error('policy requires a work item ID')
     result = await request(`/api/v1/tasks/${encodeURIComponent(id)}/guidance`)

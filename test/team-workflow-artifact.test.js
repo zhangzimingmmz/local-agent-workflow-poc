@@ -50,12 +50,13 @@ test('project CLI status resolves a Requirement through the unified status endpo
   t.after(() => new Promise((resolve) => server.close(resolve)))
 
   const address = server.address()
+  const childEnvironment = {
+    ...process.env,
+    TEAM_WORKFLOW_URL: `http://127.0.0.1:${address.port}`,
+    TEAM_WORKFLOW_TOKEN: 'account-token'
+  }
   const { stdout } = await runFile(process.execPath, [projectCliUrl.pathname, 'status', 'REQ-001'], {
-    env: {
-      ...process.env,
-      TEAM_WORKFLOW_URL: `http://127.0.0.1:${address.port}`,
-      TEAM_WORKFLOW_TOKEN: 'account-token'
-    }
+    env: childEnvironment
   })
 
   assert.equal(requestedUrl, '/api/v1/status/REQ-001')
@@ -63,4 +64,16 @@ test('project CLI status resolves a Requirement through the unified status endpo
     entityType: 'requirement',
     requirement: { id: 'REQ-001', status: 'in_progress' }
   })
+
+  const identity = await runFile(process.execPath, [projectCliUrl.pathname, 'whoami'], { env: childEnvironment })
+  assert.equal(requestedUrl, '/api/v1/me')
+  assert.equal(JSON.parse(identity.stdout).entityType, 'requirement')
+
+  const help = await runFile(process.execPath, [projectCliUrl.pathname, '--help'], { env: childEnvironment })
+  assert.match(help.stdout, /status <requirement-or-work-item-id>/)
+
+  await assert.rejects(
+    runFile(process.execPath, [projectCliUrl.pathname, 'status'], { env: childEnvironment }),
+    (error) => error.code === 1 && /status requires a Requirement or Work Item ID/.test(error.stderr)
+  )
 })

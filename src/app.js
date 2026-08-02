@@ -100,6 +100,7 @@ export function buildApp({
     account: { id: request.actor.id, name: request.actor.name, role: request.actor.role }
   }))
   app.get('/api/v1/tasks', { preHandler: authenticate }, async (request) => ({ tasks: service.listTasks(request.actor.id) }))
+  app.get('/api/v1/status/:id', { preHandler: authenticate }, async (request) => service.getStatus(request.params.id))
   app.get('/api/v1/tasks/:taskId/guidance', { preHandler: authenticate }, async (request) => {
     const task = service.getTask(request.params.taskId)
     return guidance(task, request.actor.role)

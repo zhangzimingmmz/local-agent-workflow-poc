@@ -76,9 +76,10 @@ async function main([command, id, ...args]) {
   if (!command || ['help', '--help', '-h'].includes(command)) return { usage: usage() }
   if (command === 'whoami') return request('/api/v1/me')
   if (command === 'list') return request('/api/v1/tasks')
-  if (!id) throw new Error(`${command} requires a work item ID`)
+  if (!id) throw new Error(`${command} requires a Requirement or Work Item ID`)
   const encoded = encodeURIComponent(id)
-  if (command === 'show' || command === 'status') return request(`/api/v1/tasks/${encoded}`)
+  if (command === 'show') return request(`/api/v1/tasks/${encoded}`)
+  if (command === 'status') return request(`/api/v1/status/${encoded}`)
   if (command === 'policy') return request(`/api/v1/tasks/${encoded}/guidance`)
   if (command === 'claim') {
     const body = {}

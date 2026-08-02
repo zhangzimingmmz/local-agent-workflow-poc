@@ -75,6 +75,14 @@ export class WorkflowService {
     return copy(requirement)
   }
 
+  getStatus(id) {
+    const requirement = this.requirements.get(id)
+    if (requirement) return { entityType: 'requirement', requirement: copy(requirement) }
+    const workItem = this.tasks.get(id)
+    if (workItem) return { entityType: 'work_item', workItem: copy(workItem) }
+    throw new WorkflowError('NOT_FOUND', `Requirement or work item ${id} was not found`)
+  }
+
   listTasks(actorId) {
     const actor = this.#user(actorId)
     return [...this.tasks.values()].filter((task) => task.role === actor.role).map(copy)
