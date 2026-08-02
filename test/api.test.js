@@ -229,7 +229,7 @@ test('dashboard API derives evidence, acceptance, rework and timing metrics from
 
   const dashboard = await app.inject({ method: 'GET', url: '/api/v1/dashboard', headers: alice })
   assert.deepEqual(dashboard.json().metrics.flow, {
-    activeMs: 0, queueMs: null, reviewMs: 0, blockedMs: null
+    activeMs: 0, queueMs: 0, reviewMs: 0, blockedMs: 0
   })
   assert.equal(dashboard.json().metrics.evidenceVerificationRate, 1)
   assert.equal(dashboard.json().metrics.submissionAcceptanceRate, 0)

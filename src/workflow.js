@@ -39,6 +39,33 @@ function elapsed(events, starts, ends) {
   return samples === 0 ? null : total
 }
 
+function initialStateElapsed(tasks, events, initialStatus, endType, now) {
+  let total = 0
+  let samples = 0
+  for (const task of tasks) {
+    if (task.initialStatus !== initialStatus || !task.createdAt) continue
+    const startedAt = new Date(task.createdAt).getTime()
+    const end = events.find((event) => (
+      event.taskId === task.id
+      && event.type === endType
+      && new Date(event.occurredAt).getTime() >= startedAt
+    ))
+    if (end) {
+      total += Math.max(0, new Date(end.occurredAt).getTime() - startedAt)
+      samples += 1
+    } else if (task.status === initialStatus) {
+      total += Math.max(0, now - startedAt)
+      samples += 1
+    }
+  }
+  return samples === 0 ? null : total
+}
+
+function addDurations(...values) {
+  const samples = values.filter((value) => value !== null)
+  return samples.length === 0 ? null : samples.reduce((total, value) => total + value, 0)
+}
+
 export class WorkflowService {
   constructor({
     organization, team, repository, users, tasks, requirements = [], events = [], agentRuns = [], commandRecords = [], verifier,
@@ -133,6 +160,7 @@ export class WorkflowService {
         ['accepted', 'integrated'].includes(this.#task(id).status)
       ))
       const status = dependenciesSatisfied ? (assignee ? 'claimed' : 'ready') : 'blocked'
+      const createdAt = this.clock().toISOString()
       const child = {
         id: input.id,
         title: input.title,
@@ -146,6 +174,8 @@ export class WorkflowService {
         reviewerId: reviewer.id,
         ownerId: assignee?.id ?? null,
         dependencyIds,
+        createdAt,
+        initialStatus: status,
         status: 'draft'
       }
       this.tasks.set(child.id, child)
@@ -313,6 +343,9 @@ export class WorkflowService {
       const reason = event.note || 'unspecified'
       reworkByReason[reason] = (reworkByReason[reason] ?? 0) + 1
     }
+    const now = this.clock().getTime()
+    const initialQueueMs = initialStateElapsed(tasks, this.events, 'ready', 'TaskClaimed', now)
+    const unblockedQueueMs = elapsed(this.events, ['TaskUnblocked'], ['TaskClaimed'])
     return {
       organization: copy(this.organization),
       team: copy(this.team),
@@ -326,9 +359,9 @@ export class WorkflowService {
         tasksByStatus: byStatus,
         flow: {
           activeMs: elapsed(this.events, ['TaskStarted'], ['TaskSubmitted']),
-          queueMs: elapsed(this.events, ['TaskUnblocked'], ['TaskClaimed']),
+          queueMs: addDurations(initialQueueMs, unblockedQueueMs),
           reviewMs: elapsed(this.events, ['TaskSubmitted'], ['TaskAccepted', 'TaskRejected']),
-          blockedMs: elapsed(this.events, ['TaskBlocked'], ['TaskUnblocked'])
+          blockedMs: initialStateElapsed(tasks, this.events, 'blocked', 'TaskUnblocked', now)
         },
         evidenceVerificationRate: submitted + evidenceRejected === 0 ? null : submitted / (submitted + evidenceRejected),
         submissionAcceptanceRate: accepted + rejected.length === 0 ? null : accepted / (accepted + rejected.length),

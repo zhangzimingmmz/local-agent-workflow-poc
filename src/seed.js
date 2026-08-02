@@ -7,7 +7,8 @@ function account(id, name, role, tokens) {
 }
 
 export function createSeed(tokens, {
-  repository = { name: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main' }
+  repository = { name: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main' },
+  createdAt = new Date().toISOString()
 } = {}) {
   const organization = { id: 'northstar', name: 'Northstar Labs' }
   const team = { id: 'delivery', name: 'Product Delivery' }
@@ -22,15 +23,15 @@ export function createSeed(tokens, {
   const common = {
     organizationId: organization.id, teamId: team.id,
     requirementId: 'REQ-001', parentId: null, projectId: 'agent-workflow',
-    moduleId: 'workflow-core', ownerId: null
+    moduleId: 'workflow-core', ownerId: null, createdAt
   }
   const tasks = [
-    { ...common, id: 'DES-001', title: 'Problem and solution design', role: 'designer', reviewerId: 'bob', status: 'ready', dependencyIds: [] },
-    { ...common, id: 'DES-002', title: 'Executable acceptance criteria', role: 'designer', reviewerId: 'alice', status: 'ready', dependencyIds: [] },
-    { ...common, id: 'DEV-001', title: 'Central workflow capability', role: 'developer', reviewerId: 'dave', status: 'blocked', dependencyIds: ['DES-001', 'DES-002'] },
-    { ...common, id: 'DEV-002', title: 'Codex Skill and CLI', role: 'developer', reviewerId: 'carol', status: 'blocked', dependencyIds: ['DES-001', 'DES-002'] },
-    { ...common, id: 'TST-001', title: 'End-to-end workflow verification', role: 'tester', reviewerId: 'frank', status: 'blocked', dependencyIds: ['DEV-001', 'DEV-002'] },
-    { ...common, id: 'TST-002', title: 'Independent acceptance report', role: 'tester', reviewerId: 'erin', status: 'blocked', dependencyIds: ['TST-001'] }
+    { ...common, id: 'DES-001', title: 'Problem and solution design', role: 'designer', reviewerId: 'bob', status: 'ready', initialStatus: 'ready', dependencyIds: [] },
+    { ...common, id: 'DES-002', title: 'Executable acceptance criteria', role: 'designer', reviewerId: 'alice', status: 'ready', initialStatus: 'ready', dependencyIds: [] },
+    { ...common, id: 'DEV-001', title: 'Central workflow capability', role: 'developer', reviewerId: 'dave', status: 'blocked', initialStatus: 'blocked', dependencyIds: ['DES-001', 'DES-002'] },
+    { ...common, id: 'DEV-002', title: 'Codex Skill and CLI', role: 'developer', reviewerId: 'carol', status: 'blocked', initialStatus: 'blocked', dependencyIds: ['DES-001', 'DES-002'] },
+    { ...common, id: 'TST-001', title: 'End-to-end workflow verification', role: 'tester', reviewerId: 'frank', status: 'blocked', initialStatus: 'blocked', dependencyIds: ['DEV-001', 'DEV-002'] },
+    { ...common, id: 'TST-002', title: 'Independent acceptance report', role: 'tester', reviewerId: 'erin', status: 'blocked', initialStatus: 'blocked', dependencyIds: ['TST-001'] }
   ]
   const policies = [
     { id: 'org-common', scope: 'organization', scopeId: 'northstar', role: '*', version: 1, mandatory: ['publicEvidence'], rules: { publicEvidence: true } },
