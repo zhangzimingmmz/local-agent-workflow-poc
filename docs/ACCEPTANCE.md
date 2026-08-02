@@ -2,7 +2,7 @@
 
 Updated: 2026-08-03
 
-This report distinguishes implemented behavior from live, repeatable demonstration evidence. `Automated` means the repository test suite proves the contract in isolation. `Live` means the deployed control plane, public GitHub repository, and network path have produced the evidence. The six-item technical Requirement is complete. The separate two-human-machine Codex rollout exercise remains open and is not inferred from server logs.
+This report distinguishes implemented behavior from live, repeatable demonstration evidence. `Automated` means the repository test suite proves the contract in isolation. `Live` means the deployed control plane, public GitHub repository, and network path have produced the evidence. The six-item technical Requirement is complete. The separate two-human-machine Codex rollout exercise remains open and is not inferred from server logs. See the [completion audit](./COMPLETION-AUDIT.md) for the stricter clause-by-clause audit and known gaps.
 
 ## Acceptance criteria
 
@@ -38,7 +38,7 @@ This report distinguishes implemented behavior from live, repeatable demonstrati
 | 5 | Control-plane containers | `Dockerfile`, `docker-compose.yml`, deployed healthy services | Live |
 | 6 | TLS Webhook edge | `deploy/traefik/workflow-hook.yml`, valid certificate and GitHub hook | Live |
 | 7 | Sanitized Account configuration examples | `examples/accounts/*.env.example` | Present |
-| 8 | Automated unit/API/persistence/GitHub/Webhook/CLI/browser tests | 46 tests cover domain, API, persistence, GitHub, Webhook, CLI package, and dashboard HTML; GitHub Actions passes | Present |
+| 8 | Automated unit/API/persistence/GitHub/Webhook/CLI/browser tests | 61 tests cover domain, API, persistence, GitHub, Webhook, CLI package, and dashboard HTML; GitHub Actions passes. A maintained Playwright package-based browser E2E suite remains a documented gap. | Partial to the literal browser-E2E goal |
 | 9 | End-to-end demonstration runbook | `docs/RUNBOOK.md` | Present |
 | 10 | AC-01 through AC-18 acceptance report | This document and `deliverables/test/acceptance-report.md` | Present |
 

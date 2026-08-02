@@ -14,7 +14,7 @@ A vendor-neutral proof of concept for human teams using local Codex agents, GitH
 
 See [the detailed goals](./docs/GOALS.md) and [domain language](./CONTEXT.md).
 
-Operators can follow the [six-account demonstration runbook](./docs/RUNBOOK.md), [deployment and recovery guide](./docs/DEPLOYMENT.md), and [acceptance report](./docs/ACCEPTANCE.md).
+Operators can follow the [six-account demonstration runbook](./docs/RUNBOOK.md), [deployment and recovery guide](./docs/DEPLOYMENT.md), [acceptance report](./docs/ACCEPTANCE.md), and [strict completion audit](./docs/COMPLETION-AUDIT.md).
 
 For an independent human validation, use the [two-workstation Codex rollout](./docs/ROLLOUT.md). The rollout repository carries the exact project-local `team-workflow` Skill under `.agents/skills/` so a fresh Codex checkout can discover it.
 
