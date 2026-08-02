@@ -56,6 +56,28 @@ test('review requires the configured reviewer and forbids self-review', async ()
   assert.throws(() => workflow.review('DES-001', 'bob', 'accept'), (error) => error.code === 'NOT_REVIEWER')
 })
 
+test('acceptance re-verifies GitHub evidence and rejects a changed pull-request head', async () => {
+  const fixture = workflowFixture()
+  let verification = 0
+  fixture.verifier = {
+    async verify(evidence) {
+      verification += 1
+      return { ...evidence, verified: true, headSha: verification === 1 ? 'head-before' : 'head-after' }
+    }
+  }
+  const workflow = new WorkflowService(fixture)
+  workflow.claim('DES-001', 'alice')
+  workflow.start('DES-001', 'alice')
+  await workflow.submit('DES-001', 'alice', validEvidence())
+
+  await assert.rejects(
+    async () => workflow.review('DES-001', 'bob', 'accept', 'Looks good', { idempotencyKey: 'review-drift' }),
+    (error) => error.code === 'EVIDENCE_CHANGED'
+  )
+  assert.equal(workflow.getTask('DES-001').status, 'submitted')
+  assert.equal(workflow.listEvents().at(-1).reasonCode, 'EVIDENCE_CHANGED')
+})
+
 test('only an accepted task can become integrated and complete its requirement', async () => {
   const fixture = workflowFixture()
   fixture.tasks = [fixture.tasks[0]]
