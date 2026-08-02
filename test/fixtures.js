@@ -5,6 +5,8 @@ function tokenHash(token) {
 }
 
 export function workflowFixture() {
+  const organization = { id: 'northstar', name: 'Northstar Labs' }
+  const team = { id: 'delivery', name: 'Product Delivery' }
   const users = [
     { id: 'alice', name: 'Alice Product', role: 'designer', tokenHash: tokenHash('demo-alice') },
     { id: 'bob', name: 'Bob Product', role: 'designer', tokenHash: tokenHash('demo-bob') },
@@ -16,16 +18,19 @@ export function workflowFixture() {
   const tasks = [
     {
       id: 'DES-001', requirementId: 'REQ-001', title: 'Design the workflow',
+      organizationId: organization.id, teamId: team.id,
       role: 'designer', reviewerId: 'bob', status: 'ready', ownerId: null,
       dependencyIds: [], projectId: 'agent-workflow', moduleId: 'workflow-core'
     },
     {
       id: 'DEV-001', requirementId: 'REQ-001', title: 'Implement the workflow',
+      organizationId: organization.id, teamId: team.id,
       role: 'developer', reviewerId: 'dave', status: 'blocked', ownerId: null,
       dependencyIds: ['DES-001'], projectId: 'agent-workflow', moduleId: 'workflow-core'
     },
     {
       id: 'TST-001', requirementId: 'REQ-001', title: 'Verify the workflow',
+      organizationId: organization.id, teamId: team.id,
       role: 'tester', reviewerId: 'frank', status: 'blocked', ownerId: null,
       dependencyIds: ['DEV-001'], projectId: 'agent-workflow', moduleId: 'workflow-core'
     }
@@ -35,7 +40,7 @@ export function workflowFixture() {
       return { ...evidence, verified: true, verifiedAt: '2026-08-03T00:00:00.000Z' }
     }
   }
-  return { users, tasks, verifier }
+  return { organization, team, users, tasks, verifier }
 }
 
 export function validEvidence(overrides = {}) {

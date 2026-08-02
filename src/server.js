@@ -29,6 +29,8 @@ const app = buildApp({
   service: workflow,
   users: seed.users,
   policies: seed.policies,
+  organization: seed.organization,
+  team: seed.team,
   resolveEffectiveGuidance,
   webhook,
   healthCheck: async () => {

@@ -62,7 +62,17 @@ class PersistentWorkflowService {
 export async function loadWorkflow({ store, seed, verifier }) {
   const stored = await store.load()
   if (stored) {
-    return new PersistentWorkflowService(new WorkflowService({ ...stored.snapshot, verifier }), store, stored.version)
+    return new PersistentWorkflowService(new WorkflowService({
+      ...stored.snapshot,
+      organization: stored.snapshot.organization ?? seed.organization,
+      team: stored.snapshot.team ?? seed.team,
+      tasks: stored.snapshot.tasks.map((task) => ({
+        organizationId: seed.organization.id,
+        teamId: seed.team.id,
+        ...task
+      })),
+      verifier
+    }), store, stored.version)
   }
   const domain = new WorkflowService({ ...seed, verifier })
   const version = await store.save(domain.exportState(), 0)

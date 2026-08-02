@@ -41,9 +41,11 @@ function elapsed(events, starts, ends) {
 
 export class WorkflowService {
   constructor({
-    users, tasks, requirements = [], events = [], agentRuns = [], commandRecords = [], verifier,
+    organization, team, users, tasks, requirements = [], events = [], agentRuns = [], commandRecords = [], verifier,
     clock = () => new Date()
   }) {
+    this.organization = copy(organization)
+    this.team = copy(team)
     this.users = new Map(users.map((user) => [user.id, copy(user)]))
     this.tasks = new Map(tasks.map((task) => [task.id, copy(task)]))
     this.verifier = verifier
@@ -97,6 +99,8 @@ export class WorkflowService {
 
   exportState() {
     return {
+      organization: copy(this.organization),
+      team: copy(this.team),
       users: [...this.users.values()].map(copy),
       tasks: [...this.tasks.values()].map(copy),
       requirements: [...this.requirements.values()].map(copy),
@@ -233,7 +237,8 @@ export class WorkflowService {
       reworkByReason[reason] = (reworkByReason[reason] ?? 0) + 1
     }
     return {
-      organization: { id: 'northstar', name: 'Northstar Labs' },
+      organization: copy(this.organization),
+      team: copy(this.team),
       requirements: [...this.requirements.values()].map(copy),
       tasks,
       agentRuns: this.listAgentRuns(),

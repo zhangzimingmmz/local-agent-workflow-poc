@@ -7,6 +7,8 @@ function account(id, name, role, tokens) {
 }
 
 export function createSeed(tokens) {
+  const organization = { id: 'northstar', name: 'Northstar Labs' }
+  const team = { id: 'delivery', name: 'Product Delivery' }
   const users = [
     account('alice', 'Alice Product', 'designer', tokens),
     account('bob', 'Bob Product', 'designer', tokens),
@@ -16,6 +18,7 @@ export function createSeed(tokens) {
     account('frank', 'Frank Tester', 'tester', tokens)
   ]
   const common = {
+    organizationId: organization.id, teamId: team.id,
     requirementId: 'REQ-001', parentId: 'REQ-001', projectId: 'agent-workflow',
     moduleId: 'workflow-core', ownerId: null
   }
@@ -43,6 +46,8 @@ export function createSeed(tokens) {
     { id: 'task-tst-002', scope: 'work_item', scopeId: 'TST-002', role: 'tester', version: 1, rules: { requiredArtifacts: ['acceptance-report'] } }
   ]
   return {
+    organization,
+    team,
     users,
     requirements: [{ id: 'REQ-001', title: 'Observable local-agent delivery workflow', status: 'in_progress' }],
     tasks,
