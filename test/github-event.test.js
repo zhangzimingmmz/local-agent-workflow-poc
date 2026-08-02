@@ -6,15 +6,18 @@ import { createGitHubEventHandler, reconcileAccepted } from '../src/github-event
 test('a merged pull request delivery is reverified before integration', async () => {
   const calls = []
   const github = { async confirmMerged(url) { calls.push(['verify', url]); return { merged: true, mergeCommitSha: 'merge-123' } } }
-  const workflow = { async integrateByPullRequest(url, sha) { calls.push(['integrate', url, sha]) } }
+  const workflow = { async integrateByPullRequest(url, sha, options) { calls.push(['integrate', url, sha, options]) } }
   const handle = createGitHubEventHandler({ github, workflow })
   await handle({
+    id: 'delivery-42',
     event: 'pull_request',
     payload: { action: 'closed', pull_request: { merged: true, html_url: 'https://github.com/acme/widgets/pull/42' } }
   })
   assert.deepEqual(calls, [
     ['verify', 'https://github.com/acme/widgets/pull/42'],
-    ['integrate', 'https://github.com/acme/widgets/pull/42', 'merge-123']
+    ['integrate', 'https://github.com/acme/widgets/pull/42', 'merge-123', {
+      idempotencyKey: 'github-delivery:delivery-42'
+    }]
   ])
 })
 
@@ -38,9 +41,13 @@ test('reconciliation recovers a missed merge event for accepted work', async () 
         { id: 'DES-001', status: 'integrated', evidence: { pullRequestUrl: 'https://github.com/acme/widgets/pull/40' } }
       ] }
     },
-    async integrateByPullRequest(url, sha) { calls.push([url, sha]) }
+    async integrateByPullRequest(url, sha, options) { calls.push([url, sha, options]) }
   }
   const github = { async confirmMerged() { return { merged: true, mergeCommitSha: 'merge-123' } } }
   assert.equal(await reconcileAccepted({ github, workflow }), 1)
-  assert.deepEqual(calls, [['https://github.com/acme/widgets/pull/42', 'merge-123']])
+  assert.deepEqual(calls, [[
+    'https://github.com/acme/widgets/pull/42',
+    'merge-123',
+    { idempotencyKey: 'github-reconcile:DEV-001:merge-123' }
+  ]])
 })

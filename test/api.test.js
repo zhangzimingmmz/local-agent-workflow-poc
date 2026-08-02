@@ -145,6 +145,39 @@ test('dashboard HTML exposes dependencies, responsibility, blocking reasons, evi
   assert.match(response.body, /id="activity-timeline"/)
 })
 
+test('dashboard exposes Requirement relationships, all flow times, and guidance versions', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const alice = { authorization: 'Bearer demo-alice', 'content-type': 'application/json' }
+  await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/claim',
+    headers: { ...alice, 'idempotency-key': 'observable-claim' }
+  })
+  await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/start',
+    headers: { ...alice, 'idempotency-key': 'observable-start' }, payload: '{}'
+  })
+  await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/submit',
+    headers: { ...alice, 'idempotency-key': 'observable-submit' },
+    payload: JSON.stringify({
+      repository: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main',
+      branch: 'work/DES-001-design', commitSha: 'a'.repeat(40),
+      pullRequestUrl: 'https://github.com/zhangzimingmmz/local-agent-workflow-poc/pull/1',
+      artifacts: [{ kind: 'design', path: 'docs/design.md' }]
+    })
+  })
+
+  const response = await app.inject({ method: 'GET', url: '/' })
+  assert.match(response.body, /Requirement:<\/dt><dd>REQ-001/)
+  assert.match(response.body, /Guidance versions/)
+  assert.match(response.body, /organization v1/)
+  assert.match(response.body, /Active time/)
+  assert.match(response.body, /Queue time/)
+  assert.match(response.body, /Review time/)
+  assert.match(response.body, /Blocked time/)
+})
+
 test('dashboard API derives evidence, acceptance, rework and timing metrics from events', async (t) => {
   const { app } = setup()
   t.after(() => app.close())

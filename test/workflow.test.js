@@ -118,6 +118,50 @@ test('a started task records one Codex Agent Run with its exact guidance snapsho
   assert.equal(workflow.listEvents().at(-1).agentRunId, 'run-1')
 })
 
+test('Submission events carry hierarchy, role, Agent, Git, and guidance trace context', async () => {
+  const fixture = workflowFixture()
+  fixture.clock = () => new Date('2026-08-03T00:00:00.000Z')
+  const workflow = new WorkflowService(fixture)
+  const guidanceSnapshot = {
+    rules: { branchPrefix: 'work/' },
+    sources: [
+      { id: 'org-common', scope: 'organization', role: '*', version: 1 },
+      { id: 'task-design', scope: 'work_item', role: 'designer', version: 4 }
+    ],
+    snapshotHash: 'guidance-hash'
+  }
+
+  workflow.claim('DES-001', 'alice', { idempotencyKey: 'trace-claim' })
+  workflow.start('DES-001', 'alice', {
+    agentType: 'codex', repository: 'acme/workflow', branch: 'work/DES-001-design', guidanceSnapshot
+  }, { idempotencyKey: 'trace-start' })
+  await workflow.submit('DES-001', 'alice', validEvidence({
+    repository: 'acme/workflow', branch: 'work/DES-001-design'
+  }), { idempotencyKey: 'trace-submit' })
+
+  const event = workflow.listEvents().at(-1)
+  assert.equal(event.correlationId, 'trace-submit')
+  assert.equal(event.organizationId, 'northstar')
+  assert.equal(event.teamId, 'delivery')
+  assert.equal(event.projectId, 'agent-workflow')
+  assert.equal(event.moduleId, 'workflow-core')
+  assert.equal(event.requirementId, 'REQ-001')
+  assert.equal(event.workItemId, 'DES-001')
+  assert.deepEqual(event.roleAssignment, {
+    accountId: 'alice', role: 'designer', scope: 'project', scopeId: 'agent-workflow'
+  })
+  assert.equal(event.agentType, 'codex')
+  assert.equal(event.repository, 'acme/workflow')
+  assert.equal(event.branch, 'work/DES-001-design')
+  assert.equal(event.commitSha, 'a'.repeat(40))
+  assert.equal(event.pullRequestUrl, validEvidence().pullRequestUrl)
+  assert.deepEqual(event.guidanceSourceVersions, [
+    { id: 'org-common', scope: 'organization', role: '*', version: 1 },
+    { id: 'task-design', scope: 'work_item', role: 'designer', version: 4 }
+  ])
+  assert.equal(event.guidanceSnapshotHash, 'guidance-hash')
+})
+
 test('an idempotency key replays one successful command and rejects reuse for another command', () => {
   const workflow = new WorkflowService(workflowFixture())
 
