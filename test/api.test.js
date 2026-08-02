@@ -108,6 +108,51 @@ test('dashboard HTML presents the requirement and role lanes', async (t) => {
   assert.equal((await app.inject({ method: 'GET', url: '/favicon.ico' })).statusCode, 204)
 })
 
+test('dashboard HTML exposes dependencies, responsibility, blocking reasons, evidence and activity', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+
+  const response = await app.inject({ method: 'GET', url: '/' })
+
+  assert.match(response.body, /data-requirement="REQ-001"/)
+  assert.match(response.body, /data-task="DEV-001"/)
+  assert.match(response.body, /data-dependency="DES-001"/)
+  assert.match(response.body, /Blocked by DES-001/)
+  assert.match(response.body, /Reviewer: dave/)
+  assert.match(response.body, /id="workflow-metrics"/)
+  assert.match(response.body, /id="activity-timeline"/)
+})
+
+test('dashboard API derives evidence, acceptance, rework and timing metrics from events', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const alice = { authorization: 'Bearer demo-alice', 'content-type': 'application/json' }
+  const bob = { authorization: 'Bearer demo-bob', 'content-type': 'application/json' }
+  await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers: { ...alice, 'idempotency-key': 'metric-claim' } })
+  await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/start', headers: { ...alice, 'idempotency-key': 'metric-start' }, payload: '{}' })
+  await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/submit', headers: { ...alice, 'idempotency-key': 'metric-submit' },
+    payload: JSON.stringify({
+      repository: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main',
+      branch: 'work/DES-001-design', commitSha: 'a'.repeat(40),
+      pullRequestUrl: 'https://github.com/zhangzimingmmz/local-agent-workflow-poc/pull/1',
+      artifacts: [{ kind: 'design', path: 'docs/design.md' }]
+    })
+  })
+  await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/review', headers: { ...bob, 'idempotency-key': 'metric-review' },
+    payload: JSON.stringify({ decision: 'reject', note: 'Clarify failure recovery' })
+  })
+
+  const dashboard = await app.inject({ method: 'GET', url: '/api/v1/dashboard', headers: alice })
+  assert.deepEqual(dashboard.json().metrics.flow, {
+    activeMs: 0, queueMs: null, reviewMs: 0, blockedMs: null
+  })
+  assert.equal(dashboard.json().metrics.evidenceVerificationRate, 1)
+  assert.equal(dashboard.json().metrics.submissionAcceptanceRate, 0)
+  assert.deepEqual(dashboard.json().metrics.rework, { total: 1, byStage: { designer: 1 }, byReason: { 'Clarify failure recovery': 1 } })
+})
+
 test('API awaits a persistent service before serializing a state change', async (t) => {
   const fixture = workflowFixture()
   const domain = new WorkflowService(fixture)
