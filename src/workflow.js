@@ -66,6 +66,58 @@ function addDurations(...values) {
   return samples.length === 0 ? null : samples.reduce((total, value) => total + value, 0)
 }
 
+const ROLE_SCOPE_FIELDS = {
+  organization: 'organizationId',
+  team: 'teamId',
+  project: 'projectId',
+  module: 'moduleId',
+  requirement: 'requirementId',
+  work_item: 'id'
+}
+
+const ROLE_SCOPE_ORDER = Object.keys(ROLE_SCOPE_FIELDS)
+
+function normalizedRoleAssignment(account, assignment) {
+  return {
+    id: assignment.id ?? `ra:${account.id}:${assignment.role}:${assignment.scope}:${assignment.scopeId}`,
+    accountId: account.id,
+    role: assignment.role,
+    scope: assignment.scope,
+    scopeId: assignment.scopeId
+  }
+}
+
+function normalizeAccount(account, tasks, organizationId) {
+  const normalized = copy(account)
+  if (Array.isArray(normalized.roleAssignments)) {
+    normalized.roleAssignments = normalized.roleAssignments.map((assignment) => (
+      normalizedRoleAssignment(normalized, assignment)
+    ))
+    return normalized
+  }
+  const projectIds = [...new Set(tasks
+    .filter((task) => task.role === normalized.role && task.projectId)
+    .map((task) => task.projectId))]
+  const legacyAssignments = projectIds.length > 0
+    ? projectIds.map((scopeId) => ({ role: normalized.role, scope: 'project', scopeId }))
+    : [{ role: normalized.role, scope: 'organization', scopeId: organizationId }]
+  normalized.roleAssignments = legacyAssignments.map((assignment) => normalizedRoleAssignment(normalized, assignment))
+  return normalized
+}
+
+function matchingRoleAssignment(account, task, role) {
+  return account.roleAssignments
+    .filter((assignment) => (
+      (!role || assignment.role === role)
+      && ROLE_SCOPE_FIELDS[assignment.scope]
+      && task[ROLE_SCOPE_FIELDS[assignment.scope]] === assignment.scopeId
+    ))
+    .sort((left, right) => (
+      ROLE_SCOPE_ORDER.indexOf(right.scope) - ROLE_SCOPE_ORDER.indexOf(left.scope)
+      || left.id.localeCompare(right.id)
+    ))[0] ?? null
+}
+
 export class WorkflowService {
   constructor({
     organization, team, repository, users, tasks, requirements = [], events = [], agentRuns = [], commandRecords = [], verifier,
@@ -74,8 +126,10 @@ export class WorkflowService {
     this.organization = copy(organization)
     this.team = copy(team)
     this.repository = copy(repository)
-    this.users = new Map(users.map((user) => [user.id, copy(user)]))
     this.tasks = new Map(tasks.map((task) => [task.id, copy(task)]))
+    this.users = new Map(users.map((user) => [
+      user.id, normalizeAccount(user, [...this.tasks.values()], this.organization.id)
+    ]))
     this.verifier = verifier
     this.clock = clock
     this.events = events.map(copy)
@@ -113,7 +167,7 @@ export class WorkflowService {
 
   listTasks(actorId) {
     const actor = this.#user(actorId)
-    return [...this.tasks.values()].filter((task) => task.role === actor.role).map(copy)
+    return [...this.tasks.values()].filter((task) => matchingRoleAssignment(actor, task, task.role)).map(copy)
   }
 
   listEvents() {
@@ -216,7 +270,9 @@ export class WorkflowService {
       const actor = this.#user(actorId)
       if (task.status === 'claimed' && task.ownerId === actorId) return copy(task)
       if (task.status !== 'ready') throw new WorkflowError('INVALID_STATE', `${taskId} is ${task.status}, not ready`)
-      if (task.role !== actor.role) throw new WorkflowError('ROLE_MISMATCH', `${actorId} cannot claim ${task.role} work`)
+      if (!matchingRoleAssignment(actor, task, task.role)) {
+        throw new WorkflowError('ROLE_MISMATCH', `${actorId} cannot claim ${task.role} work`)
+      }
       task.ownerId = actorId
       this.#transition(task, 'claimed', 'TaskClaimed', actorId, {}, options.idempotencyKey)
       return copy(task)
@@ -529,19 +585,15 @@ export class WorkflowService {
     const run = this.agentRuns.findLast((candidate) => candidate.taskId === task.id)
     const guidance = run?.guidanceSnapshot
     const evidence = task.evidence
+    const roleAssignment = actor
+      ? matchingRoleAssignment(actor, task, task.role) ?? matchingRoleAssignment(actor, task)
+      : null
     return {
       organizationId: task.organizationId ?? this.organization?.id,
       teamId: task.teamId ?? this.team?.id,
       projectId: task.projectId,
       moduleId: task.moduleId,
-      ...(actor ? {
-        roleAssignment: {
-          accountId: actor.id,
-          role: actor.role,
-          scope: 'project',
-          scopeId: task.projectId
-        }
-      } : {}),
+      ...(roleAssignment ? { roleAssignment: copy(roleAssignment) } : {}),
       ...(run ? { agentType: run.agentType } : {}),
       ...(evidence?.repository || run?.repository ? { repository: evidence?.repository ?? run.repository } : {}),
       ...(evidence?.branch || run?.branch ? { branch: evidence?.branch ?? run.branch } : {}),
