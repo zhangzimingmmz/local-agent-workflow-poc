@@ -29,6 +29,24 @@ test('persistent workflow restores tasks and events after a process restart', as
   assert.deepEqual(restarted.listEvents().map((event) => event.type), ['TaskClaimed', 'TaskStarted'])
 })
 
+test('persistent workflow exposes scoped Role Assignments after a legacy snapshot restart', async () => {
+  const store = new MemoryStateStore()
+  const seed = workflowFixture()
+  await loadWorkflow({ store, seed, verifier: seed.verifier })
+  for (const account of store.record.snapshot.users) {
+    account.role = account.roleAssignments[0].role
+    delete account.roleAssignments
+  }
+
+  const restarted = await loadWorkflow({ store, seed, verifier: seed.verifier })
+
+  assert.deepEqual(restarted.getAccount('alice').roleAssignments, [{
+    id: 'ra:alice:designer:project:agent-workflow',
+    accountId: 'alice', role: 'designer', scope: 'project', scopeId: 'agent-workflow'
+  }])
+  assert.equal(restarted.getRoleAssignment('DES-001', 'alice').role, 'designer')
+})
+
 test('persistent workflow does not write a new version for an idempotent replay', async () => {
   const store = new MemoryStateStore()
   const seed = workflowFixture()
