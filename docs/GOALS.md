@@ -260,6 +260,7 @@ Each Activity Event contains:
 - event ID and correlation ID;
 - Organization, Team, Project, Module, Requirement, and Work Item IDs;
 - Account, Role Assignment, and Agent type;
+- opaque Workstation and Agent Session IDs for local actions;
 - event type, prior state, resulting state, and outcome;
 - repository, branch, commit, and pull-request references when applicable;
 - Effective Guidance source versions and snapshot hash;
@@ -279,7 +280,8 @@ The PoC dashboard provides:
 - active-time, queue-time, review-time, and blocked-time summaries;
 - submission acceptance and evidence-verification rates;
 - rework count by stage and reason;
-- guidance versions used by each Submission.
+- guidance versions used by each Submission;
+- observed local Agent Sessions, Workstations, Accounts, and action counts.
 
 Metrics are intended to improve workflow design. The PoC must not present individual productivity rankings or use model token counts as a performance score.
 
@@ -301,7 +303,7 @@ Metrics are intended to improve workflow design. The PoC must not present indivi
 | `AC-12` | Every successful and rejected action is visible as a time-ordered Activity Event |
 | `AC-13` | Restarting the containers preserves users, work state, evidence, events, and policy versions |
 | `AC-14` | Browser and API are reachable through Tailscale while PostgreSQL has no host-exposed port |
-| `AC-15` | A fresh Codex session can run the entire owner or reviewer flow using only the installed Skill and local configuration |
+| `AC-15` | A fresh Codex session can run the entire owner or reviewer flow using only the installed Skill and local configuration, with its Account, Workstation, and Agent Session visible in workflow evidence |
 | `AC-16` | An absent or invalid GitHub signature is rejected without persisting a trusted event or changing work state |
 | `AC-17` | Replaying one GitHub delivery ID produces one processing result and no duplicate Activity Event |
 | `AC-18` | A missed merge delivery is recovered by reconciliation and reaches the same Integrated state exactly once |
@@ -310,7 +312,7 @@ Metrics are intended to improve workflow design. The PoC must not present indivi
 
 - **Portability:** Organization names, roles, states, repository IDs, and guidance are seeded data or configuration, not product constants.
 - **Security:** Tokens are stored locally outside Git, server tokens are hashed, and authorization is checked on every state-changing operation.
-- **Privacy:** Only workflow metadata, evidence references, and validation outcomes leave the user's machine.
+- **Privacy:** Only workflow metadata, opaque Workstation/Agent Session IDs, evidence references, and validation outcomes leave the user's machine.
 - **Reliability:** State changes and their Activity Events commit atomically; client retries are safe.
 - **Traceability:** Every visible metric can be traced back to Activity Events.
 - **Recoverability:** PostgreSQL data uses a dedicated local volume and can be backed up independently of existing services.

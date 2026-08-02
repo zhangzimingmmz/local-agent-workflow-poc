@@ -35,7 +35,7 @@ Expected result: `401` with `INVALID_SIGNATURE`. A `2xx` response would indicate
 
 ## Account handoff
 
-`deploy/bootstrap-env.sh` creates one root-readable file per virtual Account under `/opt/local-agent-workflow-poc/accounts/`. Give each user only their own file through a secure channel. Do not commit or paste these values into issues, pull requests, or chat.
+`deploy/bootstrap-env.sh` creates one root-readable file per virtual Account under `/opt/local-agent-workflow-poc/accounts/`. Each file contains the Account's opaque Workstation assignment but no Agent Session ID. Give each user only their own file through a secure channel. The user generates a new `TEAM_WORKFLOW_SESSION_ID` immediately before each fresh Codex session and never persists it. Do not commit or paste tokens or session IDs into issues, pull requests, or chat.
 
 Sanitized per-account templates are available under `examples/accounts/`. They contain placeholders only.
 

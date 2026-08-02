@@ -2,11 +2,17 @@ import { expect, test } from '@playwright/test'
 
 const alice = {
   authorization: 'Bearer e2e-token-alice',
-  'content-type': 'application/json'
+  'content-type': 'application/json',
+  'x-workflow-agent-type': 'codex',
+  'x-workflow-workstation-id': 'workstation-a',
+  'x-workflow-session-id': 'e2e-session-alice'
 }
 const bob = {
   authorization: 'Bearer e2e-token-bob',
-  'content-type': 'application/json'
+  'content-type': 'application/json',
+  'x-workflow-agent-type': 'codex',
+  'x-workflow-workstation-id': 'workstation-b',
+  'x-workflow-session-id': 'e2e-session-bob'
 }
 
 async function command(request, path, headers, idempotencyKey, data = {}) {
@@ -64,9 +70,14 @@ test('dashboard reconstructs a scoped owner/reviewer flow and child relationship
   await expect(child).toContainText('DES-001')
   await expect(page.locator('[data-task="DEV-001"] em')).toHaveText('blocked')
   await expect(page.locator('#activity-timeline')).toContainText('TaskAccepted')
+  await expect(page.locator('[data-agent-session]')).toHaveCount(2)
+  await expect(page.locator('[data-agent-session="e2e-session-alice"]')).toContainText('workstation-a')
+  await expect(page.locator('[data-agent-session="e2e-session-bob"]')).toContainText('workstation-b')
 
   await page.locator('[data-task="DES-001"] summary').click()
   await expect(page.locator('[data-task="DES-001"] details')).toContainText('Guidance versions:')
   await expect(page.locator('#workflow-metrics')).toContainText('Active time')
   await expect(page.locator('#workflow-metrics')).toContainText('Review time')
+  await expect(page.locator('#workflow-metrics')).toContainText('Agent Sessions')
+  await expect(page.locator('#workflow-metrics')).toContainText('Workstations')
 })
