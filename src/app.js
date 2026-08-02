@@ -48,7 +48,7 @@ export function buildApp({ service, users, policies, resolveEffectiveGuidance, w
       moduleId: task.moduleId, workItemId: task.id, role: request.actor.role
     })
   })
-  app.post('/api/v1/tasks/:taskId/claim', { preHandler: authenticate }, async (request) => ({ task: service.claim(request.params.taskId, request.actor.id) }))
+  app.post('/api/v1/tasks/:taskId/claim', { preHandler: authenticate }, async (request) => ({ task: await service.claim(request.params.taskId, request.actor.id) }))
   app.post('/api/v1/tasks/:taskId/start', { preHandler: authenticate }, async (request) => ({ task: await service.start(request.params.taskId, request.actor.id) }))
   app.post('/api/v1/tasks/:taskId/submit', { preHandler: authenticate }, async (request) => ({ task: await service.submit(request.params.taskId, request.actor.id, asJson(request.body)) }))
   app.post('/api/v1/tasks/:taskId/review', { preHandler: authenticate }, async (request) => {
