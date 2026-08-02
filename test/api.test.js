@@ -27,6 +27,16 @@ test('API authenticates virtual users and exposes role-eligible tasks', async (t
   assert.deepEqual(response.json().tasks.map((task) => task.id), ['DES-001'])
 })
 
+test('API reports the authenticated human account without exposing its token hash', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const response = await app.inject({
+    method: 'GET', url: '/api/v1/me', headers: { authorization: 'Bearer demo-alice' }
+  })
+  assert.equal(response.statusCode, 200)
+  assert.deepEqual(response.json(), { account: { id: 'alice', name: 'Alice Product', role: 'designer' } })
+})
+
 test('API resolves guidance and records a claim event', async (t) => {
   const { app } = setup()
   t.after(() => app.close())
