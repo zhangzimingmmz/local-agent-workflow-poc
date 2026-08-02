@@ -54,3 +54,20 @@ test('persistent workflow stores rejected command audit events across restart', 
   assert.equal(restarted.listEvents().at(-1).outcome, 'rejected')
   assert.equal(restarted.getTask('DES-001').status, 'ready')
 })
+
+test('persistent workflow serializes concurrent commands without a snapshot version conflict', async () => {
+  const store = new MemoryStateStore()
+  const seed = workflowFixture()
+  const workflow = await loadWorkflow({ store, seed, verifier: seed.verifier })
+
+  const [alice, bob] = await Promise.allSettled([
+    workflow.claim('DES-001', 'alice', { idempotencyKey: 'concurrent-alice' }),
+    workflow.claim('DES-001', 'bob', { idempotencyKey: 'concurrent-bob' })
+  ])
+
+  assert.equal(alice.status, 'fulfilled')
+  assert.equal(bob.status, 'rejected')
+  assert.equal(bob.reason.code, 'INVALID_STATE')
+  assert.equal(store.record.version, 3)
+  assert.deepEqual(store.record.snapshot.events.map((event) => event.outcome), ['succeeded', 'rejected'])
+})
