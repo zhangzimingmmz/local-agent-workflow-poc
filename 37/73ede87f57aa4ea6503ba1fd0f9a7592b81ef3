@@ -1,0 +1,27 @@
+src/schema.js
+  s_13e1caf6530d13::t_a693a2bba36b9c 25,28
+migrations/002_webhook_retry.sql
+  s_13e1caf6530d13::t_a693a2bba36b9c 1-2
+src/webhook.js
+  s_13e1caf6530d13::t_a693a2bba36b9c 39-45,54,59-60,85,88-91,94-99
+migrations/001_workflow_schema.sql
+  s_13e1caf6530d13::t_a693a2bba36b9c 23
+src/postgres.js
+  s_13e1caf6530d13::t_a693a2bba36b9c 64,99-106,111-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "3773ede87f57aa4ea6503ba1fd0f9a7592b81ef3",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
