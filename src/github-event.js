@@ -8,3 +8,15 @@ export function createGitHubEventHandler({ github, workflow }) {
     await workflow.integrateByPullRequest(pullRequest.html_url, verified.mergeCommitSha)
   }
 }
+
+export async function reconcileAccepted({ github, workflow }) {
+  let integrated = 0
+  const accepted = workflow.dashboard().tasks.filter((task) => task.status === 'accepted' && task.evidence?.pullRequestUrl)
+  for (const task of accepted) {
+    const verified = await github.confirmMerged(task.evidence.pullRequestUrl)
+    if (!verified.merged || !verified.mergeCommitSha) continue
+    await workflow.integrateByPullRequest(task.evidence.pullRequestUrl, verified.mergeCommitSha)
+    integrated += 1
+  }
+  return integrated
+}

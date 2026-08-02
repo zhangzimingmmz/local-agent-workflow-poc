@@ -11,13 +11,13 @@ function copy(value) {
 }
 
 export class WorkflowService {
-  constructor({ users, tasks, verifier, clock = () => new Date() }) {
+  constructor({ users, tasks, requirements = [], events = [], verifier, clock = () => new Date() }) {
     this.users = new Map(users.map((user) => [user.id, copy(user)]))
     this.tasks = new Map(tasks.map((task) => [task.id, copy(task)]))
     this.verifier = verifier
     this.clock = clock
-    this.events = []
-    this.requirements = new Map()
+    this.events = events.map(copy)
+    this.requirements = new Map(requirements.map((requirement) => [requirement.id, copy(requirement)]))
     for (const task of this.tasks.values()) {
       if (!this.requirements.has(task.requirementId)) {
         this.requirements.set(task.requirementId, { id: task.requirementId, status: 'in_progress' })
@@ -42,6 +42,15 @@ export class WorkflowService {
 
   listEvents() {
     return this.events.map(copy)
+  }
+
+  exportState() {
+    return {
+      users: [...this.users.values()].map(copy),
+      tasks: [...this.tasks.values()].map(copy),
+      requirements: [...this.requirements.values()].map(copy),
+      events: this.listEvents()
+    }
   }
 
   claim(taskId, actorId) {
