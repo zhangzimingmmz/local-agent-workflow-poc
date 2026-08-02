@@ -30,6 +30,42 @@ test('claiming is atomic and restricted to the required role', () => {
   assert.throws(() => workflow.claim('DES-001', 'bob'), (error) => error.code === 'INVALID_STATE')
 })
 
+test('scoped Role Assignments authorize matching hierarchy and record the exact assignment', () => {
+  const fixture = workflowFixture()
+  delete fixture.users[0].role
+  fixture.users[0].roleAssignments = [
+    {
+      id: 'ra-alice-designer-project', accountId: 'alice', role: 'designer',
+      scope: 'project', scopeId: 'agent-workflow'
+    },
+    {
+      id: 'ra-alice-developer-module', accountId: 'alice', role: 'developer',
+      scope: 'module', scopeId: 'adapter-core'
+    }
+  ]
+  fixture.tasks[1].status = 'ready'
+  fixture.tasks.push({
+    ...fixture.tasks[1],
+    id: 'DEV-ADAPTER-001', title: 'Implement the adapter', moduleId: 'adapter-core',
+    reviewerId: 'dave', dependencyIds: [], status: 'ready', initialStatus: 'ready'
+  })
+  const workflow = new WorkflowService(fixture)
+
+  assert.deepEqual(workflow.listTasks('alice').map((task) => task.id), ['DES-001', 'DEV-ADAPTER-001'])
+  assert.throws(
+    () => workflow.claim('DEV-001', 'alice', { idempotencyKey: 'wrong-module' }),
+    (error) => error.code === 'ROLE_MISMATCH'
+  )
+
+  workflow.claim('DES-001', 'alice', { idempotencyKey: 'project-role' })
+  workflow.claim('DEV-ADAPTER-001', 'alice', { idempotencyKey: 'module-role' })
+
+  assert.deepEqual(workflow.listEvents().at(-1).roleAssignment, {
+    id: 'ra-alice-developer-module', accountId: 'alice', role: 'developer',
+    scope: 'module', scopeId: 'adapter-core'
+  })
+})
+
 test('a Work Item Owner can split and assign an inherited child Work Item to another role', () => {
   const workflow = new WorkflowService(workflowFixture())
   workflow.claim('DES-001', 'alice')

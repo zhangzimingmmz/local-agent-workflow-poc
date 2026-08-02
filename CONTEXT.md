@@ -43,7 +43,7 @@ A human identity recognized by the control plane. An Account may operate a local
 _Avoid_: Agent, GitHub user
 
 **Role Assignment**:
-The authorization for an Account to perform a delivery role within a scope such as Team or Project.
+The authorization for an Account to perform one Role within one Organization, Team, Project, Module, Requirement, or Work Item scope. An Account may hold several Role Assignments, but each applies only to work inside its scope.
 _Avoid_: Job title
 
 **Accountable Owner**:
@@ -112,6 +112,7 @@ _Avoid_: Mutable audit row, application log
 - A Requirement is decomposed into Work Items.
 - A Work Item has zero or one parent Work Item and zero or more Dependencies.
 - A Work Item has exactly one Accountable Owner after it is claimed, plus optional Contributors and Reviewers.
+- An Account may hold multiple Role Assignments; every authorized action records the exact matching assignment rather than a global Account role.
 - A Submission references Artifacts and Git Evidence.
 - A GitHub Delivery may create or update Git Evidence and then produce Activity Events.
 - Acceptance applies to a Submission; Integration applies to accepted Git Evidence.
