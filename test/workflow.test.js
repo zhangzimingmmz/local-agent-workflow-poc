@@ -102,6 +102,34 @@ test('a Work Item Owner can split and assign an inherited child Work Item to ano
   })
 })
 
+test('split and review require Role Assignments that match the Work Item hierarchy', async () => {
+  const fixture = workflowFixture()
+  for (const accountId of ['alice', 'bob', 'carol', 'dave']) {
+    const account = fixture.users.find((candidate) => candidate.id === accountId)
+    const role = account.role
+    delete account.role
+    account.roleAssignments = [{
+      id: `ra-${accountId}-${role}`, accountId, role,
+      scope: 'project', scopeId: accountId === 'bob' ? 'another-project' : 'agent-workflow'
+    }]
+  }
+  const workflow = new WorkflowService(fixture)
+  workflow.claim('DES-001', 'alice')
+
+  const child = workflow.createSubtask('DES-001', 'alice', {
+    id: 'DEV-SCOPED-001', title: 'Implement scoped behavior', role: 'developer',
+    reviewerId: 'dave', assigneeId: 'carol', dependencyIds: []
+  })
+  assert.equal(child.ownerId, 'carol')
+
+  workflow.start('DES-001', 'alice')
+  await workflow.submit('DES-001', 'alice', validEvidence())
+  await assert.rejects(
+    workflow.review('DES-001', 'bob', 'accept'),
+    (error) => error.code === 'ROLE_MISMATCH'
+  )
+})
+
 test('dashboard derives initial queue and blocked time from persisted task lifecycle facts', () => {
   const fixture = workflowFixture()
   fixture.clock = () => new Date('2026-08-03T00:10:00.000Z')

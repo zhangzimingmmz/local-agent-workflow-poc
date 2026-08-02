@@ -35,7 +35,48 @@ test('API reports the authenticated human account without exposing its token has
     method: 'GET', url: '/api/v1/me', headers: { authorization: 'Bearer demo-alice' }
   })
   assert.equal(response.statusCode, 200)
-  assert.deepEqual(response.json(), { account: { id: 'alice', name: 'Alice Product', role: 'designer' } })
+  assert.deepEqual(response.json(), {
+    account: {
+      id: 'alice', name: 'Alice Product',
+      roleAssignments: [{
+        id: 'ra:alice:designer:project:agent-workflow',
+        accountId: 'alice', role: 'designer', scope: 'project', scopeId: 'agent-workflow'
+      }]
+    }
+  })
+})
+
+test('API resolves guidance with the Role Assignment matching the requested Work Item', async (t) => {
+  const fixture = workflowFixture()
+  delete fixture.users[0].role
+  fixture.users[0].roleAssignments = [
+    {
+      id: 'ra-alice-designer', accountId: 'alice', role: 'designer',
+      scope: 'project', scopeId: 'agent-workflow'
+    },
+    {
+      id: 'ra-alice-developer', accountId: 'alice', role: 'developer',
+      scope: 'module', scopeId: 'adapter-core'
+    }
+  ]
+  const service = new WorkflowService(fixture)
+  const policies = [
+    { id: 'designer-policy', scope: 'project', scopeId: 'agent-workflow', role: 'designer', version: 1, rules: { artifact: 'design' } },
+    { id: 'developer-policy', scope: 'project', scopeId: 'agent-workflow', role: 'developer', version: 1, rules: { artifact: 'source' } }
+  ]
+  const app = buildApp({
+    service, users: fixture.users, policies, resolveEffectiveGuidance,
+    webhook: new WebhookProcessor({ secret: 'test-secret', inbox: new InMemoryWebhookInbox(), onEvent: async () => {} })
+  })
+  t.after(() => app.close())
+
+  const response = await app.inject({
+    method: 'GET', url: '/api/v1/tasks/DES-001/guidance',
+    headers: { authorization: 'Bearer demo-alice' }
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().rules.artifact, 'design')
 })
 
 test('status resolves either a Requirement or Work Item without guessing its type', async (t) => {

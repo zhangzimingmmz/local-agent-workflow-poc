@@ -10,7 +10,16 @@ test('seed creates six virtual accounts, six dependency-linked work items and fi
     dave: 'token-d', erin: 'token-e', frank: 'token-f'
   }, { createdAt: '2026-08-03T00:00:00.000Z' })
   assert.equal(seed.users.length, 6)
-  assert.deepEqual(seed.users.map((user) => user.role).sort(), ['designer', 'designer', 'developer', 'developer', 'tester', 'tester'].sort())
+  assert.equal(seed.users.every((user) => !('role' in user)), true)
+  assert.deepEqual(
+    seed.users.flatMap((user) => user.roleAssignments.map((assignment) => assignment.role)).sort(),
+    ['designer', 'designer', 'developer', 'developer', 'tester', 'tester'].sort()
+  )
+  assert.equal(seed.users.every((user) => user.roleAssignments.every((assignment) => (
+    assignment.accountId === user.id
+    && assignment.scope === 'project'
+    && assignment.scopeId === 'agent-workflow'
+  ))), true)
   assert.equal(seed.users.every((user) => !('token' in user) && /^[a-f0-9]{64}$/.test(user.tokenHash)), true)
   assert.equal(seed.tasks.length, 6)
   assert.equal(seed.tasks.every((task) => task.parentId === null), true)
