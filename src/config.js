@@ -23,6 +23,10 @@ export function loadConfig(env = process.env) {
   return {
     databaseUrl: required(env, 'DATABASE_URL'),
     webhookSecret,
+    repository: {
+      name: required(env, 'WORKFLOW_REPOSITORY'),
+      baseBranch: env.WORKFLOW_BASE_BRANCH || 'main'
+    },
     demoTokens,
     githubToken: env.GITHUB_TOKEN || undefined,
     host: env.HOST || '0.0.0.0',

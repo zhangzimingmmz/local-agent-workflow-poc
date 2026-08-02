@@ -6,7 +6,9 @@ function account(id, name, role, tokens) {
   return { id, name, role, tokenHash: createHash('sha256').update(token).digest('hex') }
 }
 
-export function createSeed(tokens) {
+export function createSeed(tokens, {
+  repository = { name: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main' }
+} = {}) {
   const organization = { id: 'northstar', name: 'Northstar Labs' }
   const team = { id: 'delivery', name: 'Product Delivery' }
   const users = [
@@ -52,6 +54,6 @@ export function createSeed(tokens) {
     requirements: [{ id: 'REQ-001', title: 'Observable local-agent delivery workflow', status: 'in_progress' }],
     tasks,
     policies,
-    repository: { name: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main' }
+    repository
   }
 }

@@ -47,6 +47,7 @@ export function workflowFixture() {
 export function validEvidence(overrides = {}) {
   return {
     repository: 'zhangzimingmmz/local-agent-workflow-poc',
+    baseBranch: 'main',
     branch: 'work/DES-001-design',
     commitSha: 'a'.repeat(40),
     pullRequestUrl: 'https://github.com/zhangzimingmmz/local-agent-workflow-poc/pull/1',

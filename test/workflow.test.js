@@ -146,6 +146,7 @@ test('a started task records one Codex Agent Run with its exact guidance snapsho
 
 test('Submission events carry hierarchy, role, Agent, Git, and guidance trace context', async () => {
   const fixture = workflowFixture()
+  fixture.repository = { name: 'acme/workflow', baseBranch: 'main' }
   fixture.clock = () => new Date('2026-08-03T00:00:00.000Z')
   const workflow = new WorkflowService(fixture)
   const guidanceSnapshot = {

@@ -67,6 +67,7 @@ export async function loadWorkflow({ store, seed, verifier }) {
       ...stored.snapshot,
       organization: stored.snapshot.organization ?? seed.organization,
       team: stored.snapshot.team ?? seed.team,
+      repository: stored.snapshot.repository ?? seed.repository,
       tasks: stored.snapshot.tasks.map((task) => ({
         organizationId: seed.organization.id,
         teamId: seed.team.id,

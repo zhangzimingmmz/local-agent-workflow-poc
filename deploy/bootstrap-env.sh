@@ -1,7 +1,28 @@
 #!/bin/sh
 set -eu
 
-target_dir=${1:-/opt/local-agent-workflow-poc}
+if [ "$#" -lt 2 ] || [ "$#" -gt 5 ]; then
+  echo "Usage: deploy/bootstrap-env.sh <target-directory> <github-owner/repository> [app-port] [base-branch] [bind-address]" >&2
+  exit 2
+fi
+
+target_dir=$1
+workflow_repository=$2
+app_port=${3:-8088}
+base_branch=${4:-main}
+bind_address=${5:-100.64.0.5}
+
+case "$workflow_repository" in
+  ?*/?*) ;;
+  *) echo "Repository must use github-owner/repository format." >&2; exit 2 ;;
+esac
+case "$app_port" in
+  ''|*[!0-9]*) echo "App port must be a positive integer." >&2; exit 2 ;;
+esac
+[ "$app_port" -gt 0 ] || { echo "App port must be a positive integer." >&2; exit 2; }
+[ -n "$base_branch" ] || { echo "Base branch must not be empty." >&2; exit 2; }
+[ -n "$bind_address" ] || { echo "Bind address must not be empty." >&2; exit 2; }
+
 env_file="$target_dir/.env"
 accounts_dir="$target_dir/accounts"
 
@@ -23,11 +44,13 @@ erin=$(openssl rand -hex 20)
 frank=$(openssl rand -hex 20)
 
 {
-  printf 'BIND_ADDRESS=100.64.0.5\n'
-  printf 'APP_PORT=8088\n'
+  printf 'BIND_ADDRESS=%s\n' "$bind_address"
+  printf 'APP_PORT=%s\n' "$app_port"
   printf 'POSTGRES_PASSWORD=%s\n' "$db_password"
   printf 'WEBHOOK_SECRET=%s\n' "$webhook_secret"
   printf 'GITHUB_TOKEN=\n'
+  printf 'WORKFLOW_REPOSITORY=%s\n' "$workflow_repository"
+  printf 'WORKFLOW_BASE_BRANCH=%s\n' "$base_branch"
   printf 'DEMO_TOKEN_ALICE=%s\n' "$alice"
   printf 'DEMO_TOKEN_BOB=%s\n' "$bob"
   printf 'DEMO_TOKEN_CAROL=%s\n' "$carol"
@@ -40,9 +63,9 @@ for record in "alice:$alice" "bob:$bob" "carol:$carol" "dave:$dave" "erin:$erin"
   name=${record%%:*}
   token=${record#*:}
   {
-    printf 'TEAM_WORKFLOW_URL=http://100.64.0.5:8088\n'
+    printf 'TEAM_WORKFLOW_URL=http://%s:%s\n' "$bind_address" "$app_port"
     printf 'TEAM_WORKFLOW_TOKEN=%s\n' "$token"
-    printf 'TEAM_WORKFLOW_BASE_BRANCH=main\n'
+    printf 'TEAM_WORKFLOW_BASE_BRANCH=%s\n' "$base_branch"
   } > "$accounts_dir/$name.env"
 done
 

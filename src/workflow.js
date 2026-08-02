@@ -41,11 +41,12 @@ function elapsed(events, starts, ends) {
 
 export class WorkflowService {
   constructor({
-    organization, team, users, tasks, requirements = [], events = [], agentRuns = [], commandRecords = [], verifier,
+    organization, team, repository, users, tasks, requirements = [], events = [], agentRuns = [], commandRecords = [], verifier,
     clock = () => new Date()
   }) {
     this.organization = copy(organization)
     this.team = copy(team)
+    this.repository = copy(repository)
     this.users = new Map(users.map((user) => [user.id, copy(user)]))
     this.tasks = new Map(tasks.map((task) => [task.id, copy(task)]))
     this.verifier = verifier
@@ -109,6 +110,7 @@ export class WorkflowService {
     return {
       organization: copy(this.organization),
       team: copy(this.team),
+      repository: copy(this.repository),
       users: [...this.users.values()].map(copy),
       tasks: [...this.tasks.values()].map(copy),
       requirements: [...this.requirements.values()].map(copy),
@@ -159,6 +161,12 @@ export class WorkflowService {
       if (task.status !== 'in_progress') throw new WorkflowError('INVALID_STATE', `${taskId} is ${task.status}, not in progress`)
       if (!Array.isArray(evidence?.artifacts) || evidence.artifacts.length === 0) {
         throw new WorkflowError('INVALID_EVIDENCE', 'At least one repository artifact is required')
+      }
+      if (evidence.repository?.toLowerCase() !== this.repository.name.toLowerCase()) {
+        throw new WorkflowError('INVALID_EVIDENCE', `Submission must use the configured Project repository ${this.repository.name}`)
+      }
+      if (evidence.baseBranch !== this.repository.baseBranch) {
+        throw new WorkflowError('INVALID_EVIDENCE', `Submission must target the configured base branch ${this.repository.baseBranch}`)
       }
       try {
         task.evidence = await this.verifier.verify(evidence)
@@ -248,6 +256,7 @@ export class WorkflowService {
     return {
       organization: copy(this.organization),
       team: copy(this.team),
+      repository: copy(this.repository),
       requirements: [...this.requirements.values()].map(copy),
       tasks,
       agentRuns: this.listAgentRuns(),

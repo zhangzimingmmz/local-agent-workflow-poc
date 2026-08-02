@@ -17,7 +17,7 @@ const inbox = new PostgresWebhookInbox(pool)
 await stateStore.initialize()
 await inbox.initialize()
 
-const seed = createSeed(config.demoTokens)
+const seed = createSeed(config.demoTokens, { repository: config.repository })
 const github = new GitHubEvidenceVerifier({ token: config.githubToken })
 const workflow = await loadWorkflow({ store: stateStore, seed, verifier: github })
 const webhook = new WebhookProcessor({
