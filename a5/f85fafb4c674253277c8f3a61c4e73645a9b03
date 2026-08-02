@@ -1,0 +1,23 @@
+src/schema.js
+  s_13e1caf6530d13::t_685281f6dc523b 1-27
+migrations/001_workflow_schema.sql
+  s_13e1caf6530d13::t_685281f6dc523b 1-24
+src/postgres.js
+  s_13e1caf6530d13::t_685281f6dc523b 1-2,13,74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "a5f85fafb4c674253277c8f3a61c4e73645a9b03",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
