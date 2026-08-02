@@ -115,6 +115,50 @@ test('API resolves guidance and records a claim event', async (t) => {
   assert.equal(dashboard.json().metrics.events, 1)
 })
 
+test('start persists an idempotent policy rejection without changing Work Item state', async (t) => {
+  const policies = [
+    {
+      id: 'mandatory-org', scope: 'organization', scopeId: 'northstar', role: '*', version: 1,
+      mandatory: ['publicEvidence'], rules: { publicEvidence: true }
+    },
+    {
+      id: 'invalid-task-override', scope: 'work_item', scopeId: 'DES-001', role: 'designer', version: 1,
+      rules: { publicEvidence: false }
+    }
+  ]
+  const { app } = setup({ policies })
+  t.after(() => app.close())
+  const authorization = { authorization: 'Bearer demo-alice' }
+  await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/claim',
+    headers: { ...authorization, 'idempotency-key': 'policy-claim' }
+  })
+
+  const start = () => app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/start',
+    headers: { ...authorization, 'idempotency-key': 'policy-start', 'content-type': 'application/json' },
+    payload: '{}'
+  })
+  assert.equal((await start()).statusCode, 409)
+  assert.equal((await start()).json().error, 'MANDATORY_OVERRIDE')
+
+  const dashboard = await app.inject({ method: 'GET', url: '/api/v1/dashboard', headers: authorization })
+  assert.equal(dashboard.json().metrics.events, 2)
+  assert.deepEqual(dashboard.json().events.at(-1), {
+    id: 'evt-2', correlationId: 'policy-start', type: 'ActionRejected', command: 'start',
+    actorId: 'alice', taskId: 'DES-001', workItemId: 'DES-001', requirementId: 'REQ-001',
+    previousStatus: 'claimed', status: 'claimed', outcome: 'rejected',
+    reasonCode: 'MANDATORY_OVERRIDE',
+    reason: 'invalid-task-override cannot override mandatory rule publicEvidence from mandatory-org',
+    occurredAt: '2026-08-03T00:00:00.000Z',
+    organizationId: 'northstar', teamId: 'delivery', projectId: 'agent-workflow', moduleId: 'workflow-core',
+    roleAssignment: {
+      id: 'ra:alice:designer:project:agent-workflow',
+      accountId: 'alice', role: 'designer', scope: 'project', scopeId: 'agent-workflow'
+    }
+  })
+})
+
 test('API lets an Owner split a Work Item and assign the child to an eligible Account', async (t) => {
   const { app } = setup()
   t.after(() => app.close())
