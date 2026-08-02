@@ -38,6 +38,27 @@ test('API reports the authenticated human account without exposing its token has
   assert.deepEqual(response.json(), { account: { id: 'alice', name: 'Alice Product', role: 'designer' } })
 })
 
+test('status resolves either a Requirement or Work Item without guessing its type', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const headers = { authorization: 'Bearer demo-alice' }
+
+  const requirement = await app.inject({ method: 'GET', url: '/api/v1/status/REQ-001', headers })
+  assert.equal(requirement.statusCode, 200)
+  assert.deepEqual(requirement.json(), {
+    entityType: 'requirement',
+    requirement: { id: 'REQ-001', status: 'in_progress' }
+  })
+
+  const workItem = await app.inject({ method: 'GET', url: '/api/v1/status/DES-001', headers })
+  assert.equal(workItem.statusCode, 200)
+  assert.equal(workItem.json().entityType, 'work_item')
+  assert.equal(workItem.json().workItem.id, 'DES-001')
+
+  assert.equal((await app.inject({ method: 'GET', url: '/api/v1/status/UNKNOWN', headers })).statusCode, 404)
+  assert.equal((await app.inject({ method: 'GET', url: '/api/v1/status/REQ-001' })).statusCode, 401)
+})
+
 test('API resolves guidance and records a claim event', async (t) => {
   const { app } = setup()
   t.after(() => app.close())
