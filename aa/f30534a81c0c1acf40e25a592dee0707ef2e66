@@ -1,0 +1,23 @@
+deliverables/dev-002/team-workflow/workflow.mjs
+  s_13e1caf6530d13::t_d438b992bf2884 15
+src/workflow.js
+  s_13e1caf6530d13::t_d438b992bf2884 17-25,53-56,299,316,318
+deliverables/dev-002/team-workflow/SKILL.md
+  s_13e1caf6530d13::t_d438b992bf2884 43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "aaf30534a81c0c1acf40e25a592dee0707ef2e66",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
