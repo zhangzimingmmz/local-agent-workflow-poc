@@ -122,3 +122,78 @@ test('project CLI status resolves a Requirement through the unified status endpo
     (error) => error.code === 1 && /TEAM_WORKFLOW_SESSION_ID is required/.test(error.stderr)
   )
 })
+
+test('project CLI audits repeatable Requirement evidence and fails closed on incomplete work', async (t) => {
+  const dashboard = {
+    requirements: [{ id: 'REQ-001', status: 'completed' }],
+    tasks: [{
+      id: 'DES-001', requirementId: 'REQ-001', status: 'integrated',
+      ownerId: 'alice', reviewerId: 'bob', mergeSha: 'merge-sha',
+      evidence: {
+        verified: true, commitSha: 'a'.repeat(40),
+        pullRequestUrl: 'https://github.com/acme/workflow/pull/1',
+        artifacts: [{ kind: 'design', path: 'deliverables/design.md' }]
+      }
+    }],
+    agentRuns: [{
+      id: 'run-1', taskId: 'DES-001', actorId: 'alice',
+      agentSessionId: 'session-owner', workstationId: 'workstation-a',
+      guidanceSnapshot: {
+        sources: ['organization', 'team', 'project', 'module', 'work_item'].map((scope) => ({ scope, version: 1 })),
+        snapshotHash: 'guidance-hash'
+      }
+    }],
+    agentSessions: [
+      { sessionId: 'session-owner', actorId: 'alice', workstationId: 'workstation-a', agentType: 'codex', actions: 3 },
+      { sessionId: 'session-reviewer', actorId: 'bob', workstationId: 'workstation-b', agentType: 'codex', actions: 1 }
+    ],
+    events: [
+      { id: 'evt-1', type: 'TaskSubmitted', requirementId: 'REQ-001', taskId: 'DES-001', actorId: 'alice', agentSessionId: 'session-owner', occurredAt: '2026-08-03T00:00:01.000Z' },
+      { id: 'evt-2', type: 'TaskAccepted', requirementId: 'REQ-001', taskId: 'DES-001', actorId: 'bob', agentSessionId: 'session-reviewer', occurredAt: '2026-08-03T00:00:02.000Z' },
+      { id: 'evt-3', type: 'TaskIntegrated', requirementId: 'REQ-001', taskId: 'DES-001', actorId: 'github', occurredAt: '2026-08-03T00:00:03.000Z' }
+    ]
+  }
+  const server = createServer((_request, response) => {
+    response.setHeader('content-type', 'application/json')
+    response.end(JSON.stringify(dashboard))
+  })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  t.after(() => new Promise((resolve) => server.close(resolve)))
+  const environment = {
+    ...process.env,
+    TEAM_WORKFLOW_URL: `http://127.0.0.1:${server.address().port}`,
+    TEAM_WORKFLOW_TOKEN: 'audit-token',
+    TEAM_WORKFLOW_WORKSTATION_ID: 'workstation-a',
+    TEAM_WORKFLOW_SESSION_ID: 'session-auditor'
+  }
+  const command = [
+    projectCliUrl.pathname, 'audit', 'REQ-001',
+    '--accounts', 'alice,bob',
+    '--workstations', 'workstation-a,workstation-b',
+    '--min-sessions', '2'
+  ]
+
+  const success = await runFile(process.execPath, command, { env: environment })
+  const evidence = JSON.parse(success.stdout)
+  assert.equal(evidence.passed, true)
+  assert.deepEqual(evidence.observed, {
+    requirementStatus: 'completed', workItems: 1, integratedWorkItems: 1,
+    agentRuns: 1, agentSessions: 2, accounts: ['alice', 'bob'],
+    workstations: ['workstation-a', 'workstation-b'], events: 3
+  })
+  assert.equal(evidence.workItems[0].pullRequestUrl, 'https://github.com/acme/workflow/pull/1')
+  assert.deepEqual(evidence.failures, [])
+
+  dashboard.requirements[0].status = 'in_progress'
+  dashboard.tasks[0].status = 'submitted'
+  await assert.rejects(
+    runFile(process.execPath, command, { env: environment }),
+    (error) => {
+      const failed = JSON.parse(error.stdout)
+      return error.code === 2
+        && failed.passed === false
+        && failed.failures.some((failure) => /Requirement REQ-001 is in_progress/.test(failure))
+        && failed.failures.some((failure) => /DES-001 is submitted/.test(failure))
+    }
+  )
+})
