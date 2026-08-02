@@ -1,0 +1,21 @@
+src/app.js
+  s_13e1caf6530d13::t_11a7f0566499b9 51
+src/config.js
+  s_13e1caf6530d13::t_11a7f0566499b9 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "5bf6376c89521f9cfddd53899eb273469d2d101b",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
