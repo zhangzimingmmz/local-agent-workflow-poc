@@ -67,7 +67,7 @@ export class WebhookProcessor {
     } catch {
       throw new WebhookError('INVALID_JSON', 'GitHub webhook body is not valid JSON')
     }
-    const inserted = this.inbox.putIfAbsent({
+    const inserted = await this.inbox.putIfAbsent({
       id, event, payload, status: 'pending', attempts: 0, receivedAt: this.clock().toISOString()
     })
     return { accepted: true, duplicate: !inserted }
@@ -75,13 +75,13 @@ export class WebhookProcessor {
 
   async processPending() {
     let processed = 0
-    for (const delivery of this.inbox.pending()) {
+    for (const delivery of await this.inbox.pending()) {
       try {
         await this.onEvent(structuredClone(delivery))
-        this.inbox.update(delivery.id, { status: 'processed', processedAt: this.clock().toISOString(), attempts: delivery.attempts + 1, lastError: null })
+        await this.inbox.update(delivery.id, { status: 'processed', processedAt: this.clock().toISOString(), attempts: delivery.attempts + 1, lastError: null })
         processed += 1
       } catch (error) {
-        this.inbox.update(delivery.id, { status: 'failed', attempts: delivery.attempts + 1, lastError: error.message })
+        await this.inbox.update(delivery.id, { status: 'failed', attempts: delivery.attempts + 1, lastError: error.message })
       }
     }
     return processed

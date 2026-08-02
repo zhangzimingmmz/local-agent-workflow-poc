@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import { createHash } from 'node:crypto'
 
 import { PolicyError } from './policy.js'
 import { WebhookError } from './webhook.js'
@@ -17,12 +18,13 @@ function dashboardHtml(data) {
 
 export function buildApp({ service, users, policies, resolveEffectiveGuidance, webhook }) {
   const app = Fastify({ logger: false })
-  const tokens = new Map(users.map((user) => [user.token, user]))
+  const tokens = new Map(users.map((user) => [user.tokenHash, user]))
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body))
 
   async function authenticate(request, reply) {
     const match = request.headers.authorization?.match(/^Bearer (.+)$/)
-    const actor = match ? tokens.get(match[1]) : null
+    const hash = match ? createHash('sha256').update(match[1]).digest('hex') : null
+    const actor = hash ? tokens.get(hash) : null
     if (!actor) return reply.code(401).send({ error: 'UNAUTHORIZED', message: 'A valid workflow token is required' })
     request.actor = actor
   }
@@ -47,6 +49,13 @@ export function buildApp({ service, users, policies, resolveEffectiveGuidance, w
     })
   })
   app.post('/api/v1/tasks/:taskId/claim', { preHandler: authenticate }, async (request) => ({ task: service.claim(request.params.taskId, request.actor.id) }))
+  app.post('/api/v1/tasks/:taskId/start', { preHandler: authenticate }, async (request) => ({ task: await service.start(request.params.taskId, request.actor.id) }))
+  app.post('/api/v1/tasks/:taskId/submit', { preHandler: authenticate }, async (request) => ({ task: await service.submit(request.params.taskId, request.actor.id, asJson(request.body)) }))
+  app.post('/api/v1/tasks/:taskId/review', { preHandler: authenticate }, async (request) => {
+    const body = asJson(request.body)
+    return { task: await service.review(request.params.taskId, request.actor.id, body.decision, body.note) }
+  })
+  app.get('/api/v1/tasks/:taskId', { preHandler: authenticate }, async (request) => ({ task: service.getTask(request.params.taskId) }))
   app.get('/api/v1/dashboard', { preHandler: authenticate }, async () => service.dashboard())
   app.post('/webhooks/github', async (request, reply) => {
     const result = await webhook.receive(request.headers, request.body)

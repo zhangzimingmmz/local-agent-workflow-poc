@@ -62,6 +62,15 @@ export class GitHubEvidenceVerifier {
     }
   }
 
+  async confirmMerged(pullRequestUrl) {
+    const reference = parsePullRequestUrl(pullRequestUrl)
+    const pullRequest = await this.#json(`https://api.github.com/repos/${reference.repository}/pulls/${reference.number}`)
+    return {
+      merged: Boolean(pullRequest.merged),
+      mergeCommitSha: pullRequest.merge_commit_sha ?? null
+    }
+  }
+
   async #json(url) {
     const headers = { accept: 'application/vnd.github+json', 'user-agent': 'local-agent-workflow-poc' }
     if (this.token) headers.authorization = `Bearer ${this.token}`
