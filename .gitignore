@@ -1,6 +1,7 @@
 node_modules/
 coverage/
 .env
+accounts/
 *.log
 playwright-report/
 test-results/
