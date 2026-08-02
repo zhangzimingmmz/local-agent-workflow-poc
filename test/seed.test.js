@@ -8,7 +8,7 @@ test('seed creates six virtual accounts, six dependency-linked work items and fi
   const seed = createSeed({
     alice: 'token-a', bob: 'token-b', carol: 'token-c',
     dave: 'token-d', erin: 'token-e', frank: 'token-f'
-  })
+  }, { createdAt: '2026-08-03T00:00:00.000Z' })
   assert.equal(seed.users.length, 6)
   assert.deepEqual(seed.users.map((user) => user.role).sort(), ['designer', 'designer', 'developer', 'developer', 'tester', 'tester'].sort())
   assert.equal(seed.users.every((user) => !('token' in user) && /^[a-f0-9]{64}$/.test(user.tokenHash)), true)
@@ -17,6 +17,8 @@ test('seed creates six virtual accounts, six dependency-linked work items and fi
   assert.deepEqual(seed.organization, { id: 'northstar', name: 'Northstar Labs' })
   assert.deepEqual(seed.team, { id: 'delivery', name: 'Product Delivery' })
   assert.equal(seed.tasks.every((task) => task.organizationId === seed.organization.id && task.teamId === seed.team.id), true)
+  assert.equal(seed.tasks.every((task) => task.createdAt === '2026-08-03T00:00:00.000Z'), true)
+  assert.equal(seed.tasks.every((task) => task.initialStatus === task.status), true)
   assert.deepEqual(seed.tasks.find((task) => task.id === 'DEV-001').dependencyIds, ['DES-001', 'DES-002'])
   assert.deepEqual(new Set(seed.policies.map((policy) => policy.scope)), new Set(['organization', 'team', 'project', 'module', 'work_item']))
 })

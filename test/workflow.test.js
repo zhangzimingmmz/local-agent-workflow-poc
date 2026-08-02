@@ -48,7 +48,8 @@ test('a Work Item Owner can split and assign an inherited child Work Item to ano
     id: 'DEV-CHILD-001', title: 'Implement the designed adapter',
     organizationId: 'northstar', teamId: 'delivery', projectId: 'agent-workflow', moduleId: 'workflow-core',
     requirementId: 'REQ-001', parentId: 'DES-001', role: 'developer', reviewerId: 'dave',
-    ownerId: 'carol', dependencyIds: ['DES-001'], status: 'blocked'
+    ownerId: 'carol', dependencyIds: ['DES-001'], status: 'blocked', initialStatus: 'blocked',
+    createdAt: child.createdAt
   })
   assert.equal(workflow.listTasks('carol').some((task) => task.id === 'DEV-CHILD-001'), true)
   assert.deepEqual(workflow.listEvents().at(-1), {
@@ -60,6 +61,34 @@ test('a Work Item Owner can split and assign an inherited child Work Item to ano
     parentWorkItemId: 'DES-001', assignedOwnerId: 'carol',
     occurredAt: workflow.listEvents().at(-1).occurredAt
   })
+})
+
+test('dashboard derives initial queue and blocked time from persisted task lifecycle facts', () => {
+  const fixture = workflowFixture()
+  fixture.clock = () => new Date('2026-08-03T00:10:00.000Z')
+  fixture.events = [
+    {
+      id: 'evt-1', type: 'TaskClaimed', taskId: 'DES-001', actorId: 'alice', outcome: 'succeeded',
+      occurredAt: '2026-08-03T00:01:00.000Z'
+    },
+    {
+      id: 'evt-2', type: 'TaskUnblocked', taskId: 'DEV-001', actorId: 'alice', outcome: 'succeeded',
+      occurredAt: '2026-08-03T00:05:00.000Z'
+    },
+    {
+      id: 'evt-3', type: 'TaskClaimed', taskId: 'DEV-001', actorId: 'carol', outcome: 'succeeded',
+      occurredAt: '2026-08-03T00:07:00.000Z'
+    }
+  ]
+  fixture.tasks[0].status = 'claimed'
+  fixture.tasks[0].ownerId = 'alice'
+  fixture.tasks[1].status = 'claimed'
+  fixture.tasks[1].ownerId = 'carol'
+
+  const metrics = new WorkflowService(fixture).dashboard().metrics.flow
+
+  assert.equal(metrics.queueMs, 180000)
+  assert.equal(metrics.blockedMs, 900000)
 })
 
 test('splitting rejects non-owners, duplicate IDs, and role-mismatched assignments without partial children', () => {

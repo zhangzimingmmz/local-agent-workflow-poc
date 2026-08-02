@@ -8,6 +8,7 @@ export function workflowFixture() {
   const organization = { id: 'northstar', name: 'Northstar Labs' }
   const team = { id: 'delivery', name: 'Product Delivery' }
   const repository = { name: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main' }
+  const createdAt = '2026-08-03T00:00:00.000Z'
   const users = [
     { id: 'alice', name: 'Alice Product', role: 'designer', tokenHash: tokenHash('demo-alice') },
     { id: 'bob', name: 'Bob Product', role: 'designer', tokenHash: tokenHash('demo-bob') },
@@ -20,19 +21,19 @@ export function workflowFixture() {
     {
       id: 'DES-001', requirementId: 'REQ-001', title: 'Design the workflow',
       organizationId: organization.id, teamId: team.id,
-      role: 'designer', reviewerId: 'bob', status: 'ready', ownerId: null,
+      role: 'designer', reviewerId: 'bob', status: 'ready', initialStatus: 'ready', createdAt, ownerId: null,
       dependencyIds: [], projectId: 'agent-workflow', moduleId: 'workflow-core'
     },
     {
       id: 'DEV-001', requirementId: 'REQ-001', title: 'Implement the workflow',
       organizationId: organization.id, teamId: team.id,
-      role: 'developer', reviewerId: 'dave', status: 'blocked', ownerId: null,
+      role: 'developer', reviewerId: 'dave', status: 'blocked', initialStatus: 'blocked', createdAt, ownerId: null,
       dependencyIds: ['DES-001'], projectId: 'agent-workflow', moduleId: 'workflow-core'
     },
     {
       id: 'TST-001', requirementId: 'REQ-001', title: 'Verify the workflow',
       organizationId: organization.id, teamId: team.id,
-      role: 'tester', reviewerId: 'frank', status: 'blocked', ownerId: null,
+      role: 'tester', reviewerId: 'frank', status: 'blocked', initialStatus: 'blocked', createdAt, ownerId: null,
       dependencyIds: ['DEV-001'], projectId: 'agent-workflow', moduleId: 'workflow-core'
     }
   ]
