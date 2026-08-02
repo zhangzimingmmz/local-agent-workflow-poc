@@ -8,12 +8,12 @@ import { InMemoryWebhookInbox, WebhookProcessor } from '../src/webhook.js'
 import { WorkflowService } from '../src/workflow.js'
 import { workflowFixture } from './fixtures.js'
 
-function setup() {
+function setup(options = {}) {
   const fixture = workflowFixture()
   const service = new WorkflowService(fixture)
   const policies = [{ id: 'organization', scope: 'organization', scopeId: 'northstar', role: '*', version: 1, rules: { branchPrefix: 'work/' } }]
   const webhook = new WebhookProcessor({ secret: 'test-secret', inbox: new InMemoryWebhookInbox(), onEvent: async () => {} })
-  const app = buildApp({ service, users: fixture.users, policies, resolveEffectiveGuidance, webhook })
+  const app = buildApp({ service, users: fixture.users, policies, resolveEffectiveGuidance, webhook, ...options })
   return { app }
 }
 
@@ -128,4 +128,54 @@ test('API awaits a persistent service before serializing a state change', async 
   })
   assert.equal(response.statusCode, 200)
   assert.equal(response.json().task.ownerId, 'alice')
+})
+
+test('state-changing API commands require and replay an Idempotency-Key', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const authorization = 'Bearer demo-alice'
+
+  assert.equal((await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers: { authorization }
+  })).statusCode, 400)
+
+  const headers = { authorization, 'idempotency-key': 'claim-api-once' }
+  assert.equal((await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers })).statusCode, 200)
+  assert.equal((await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers })).statusCode, 200)
+  const dashboard = await app.inject({ method: 'GET', url: '/api/v1/dashboard', headers })
+  assert.equal(dashboard.json().events.filter((event) => event.type === 'TaskClaimed').length, 1)
+})
+
+test('starting through the API records a Codex Agent Run with server-resolved guidance', async (t) => {
+  const { app } = setup()
+  t.after(() => app.close())
+  const headers = { authorization: 'Bearer demo-alice', 'content-type': 'application/json' }
+  await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers: { ...headers, 'idempotency-key': 'claim-run' } })
+
+  const response = await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/start',
+    headers: { ...headers, 'idempotency-key': 'start-run' },
+    payload: JSON.stringify({
+      agentType: 'codex', repository: 'zhangzimingmmz/local-agent-workflow-poc',
+      branch: 'work/DES-001-design'
+    })
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().agentRun.guidanceSnapshot.rules.branchPrefix, 'work/')
+  const dashboard = await app.inject({ method: 'GET', url: '/api/v1/dashboard', headers })
+  assert.equal(dashboard.json().agentRuns[0].agentType, 'codex')
+})
+
+test('health reports database readiness and returns 503 when the dependency fails', async (t) => {
+  const ready = setup({ healthCheck: async () => ({ database: 'ok' }) }).app
+  const unavailable = setup({ healthCheck: async () => { throw new Error('database unavailable') } }).app
+  t.after(() => Promise.all([ready.close(), unavailable.close()]))
+
+  assert.deepEqual((await ready.inject({ method: 'GET', url: '/health' })).json(), {
+    status: 'ok', dependencies: { database: 'ok' }
+  })
+  const response = await unavailable.inject({ method: 'GET', url: '/health' })
+  assert.equal(response.statusCode, 503)
+  assert.deepEqual(response.json(), { status: 'unavailable', dependencies: { database: 'error' } })
 })

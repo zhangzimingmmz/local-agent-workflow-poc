@@ -69,3 +69,59 @@ test('only an accepted task can become integrated and complete its requirement',
   assert.equal(workflow.integrateByPullRequest(validEvidence().pullRequestUrl, 'merge-sha').status, 'integrated')
   assert.equal(workflow.getRequirement('REQ-001').status, 'completed')
 })
+
+test('a started task records one Codex Agent Run with its exact guidance snapshot', () => {
+  const workflow = new WorkflowService(workflowFixture())
+  const guidanceSnapshot = {
+    rules: { branchPrefix: 'work/' },
+    sources: [{ id: 'team-common', version: 1, scope: 'team', role: '*' }],
+    snapshotHash: 'guidance-hash'
+  }
+
+  workflow.claim('DES-001', 'alice', { idempotencyKey: 'claim-des-001' })
+  workflow.start('DES-001', 'alice', {
+    agentType: 'codex',
+    repository: 'zhangzimingmmz/local-agent-workflow-poc',
+    branch: 'work/DES-001-design',
+    guidanceSnapshot
+  }, { idempotencyKey: 'start-des-001' })
+
+  assert.deepEqual(workflow.listAgentRuns(), [{
+    id: 'run-1', taskId: 'DES-001', actorId: 'alice', agentType: 'codex',
+    repository: 'zhangzimingmmz/local-agent-workflow-poc', branch: 'work/DES-001-design',
+    guidanceSnapshot, startedAt: '2026-08-03T00:00:00.000Z'
+  }])
+  assert.equal(workflow.listEvents().at(-1).agentRunId, 'run-1')
+})
+
+test('an idempotency key replays one successful command and rejects reuse for another command', () => {
+  const workflow = new WorkflowService(workflowFixture())
+
+  const first = workflow.claim('DES-001', 'alice', { idempotencyKey: 'claim-once' })
+  const replay = workflow.claim('DES-001', 'alice', { idempotencyKey: 'claim-once' })
+
+  assert.deepEqual(replay, first)
+  assert.equal(workflow.listEvents().filter((event) => event.type === 'TaskClaimed').length, 1)
+  assert.throws(
+    () => workflow.claim('DES-001', 'bob', { idempotencyKey: 'claim-once' }),
+    (error) => error.code === 'IDEMPOTENCY_CONFLICT'
+  )
+})
+
+test('a rejected role or state check creates one audit event without changing task state', () => {
+  const workflow = new WorkflowService(workflowFixture())
+
+  assert.throws(
+    () => workflow.claim('DES-001', 'carol', { idempotencyKey: 'wrong-role' }),
+    (error) => error.code === 'ROLE_MISMATCH'
+  )
+
+  assert.equal(workflow.getTask('DES-001').status, 'ready')
+  assert.deepEqual(workflow.listEvents().at(-1), {
+    id: 'evt-1', correlationId: 'wrong-role', type: 'ActionRejected', command: 'claim',
+    actorId: 'carol', taskId: 'DES-001', requirementId: 'REQ-001',
+    previousStatus: 'ready', status: 'ready', outcome: 'rejected',
+    reasonCode: 'ROLE_MISMATCH', reason: 'carol cannot claim designer work',
+    occurredAt: '2026-08-03T00:00:00.000Z'
+  })
+})

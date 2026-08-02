@@ -29,13 +29,28 @@ test('persistent workflow restores tasks and events after a process restart', as
   assert.deepEqual(restarted.listEvents().map((event) => event.type), ['TaskClaimed', 'TaskStarted'])
 })
 
-test('persistent workflow writes one new version for each successful state command', async () => {
+test('persistent workflow does not write a new version for an idempotent replay', async () => {
   const store = new MemoryStateStore()
   const seed = workflowFixture()
   const workflow = await loadWorkflow({ store, seed, verifier: seed.verifier })
   assert.equal(store.record.version, 1)
-  await workflow.claim('DES-001', 'alice')
+  await workflow.claim('DES-001', 'alice', { idempotencyKey: 'claim-once' })
   assert.equal(store.record.version, 2)
-  await workflow.claim('DES-001', 'alice')
-  assert.equal(store.record.version, 3)
+  await workflow.claim('DES-001', 'alice', { idempotencyKey: 'claim-once' })
+  assert.equal(store.record.version, 2)
+})
+
+test('persistent workflow stores rejected command audit events across restart', async () => {
+  const store = new MemoryStateStore()
+  const seed = workflowFixture()
+  const workflow = await loadWorkflow({ store, seed, verifier: seed.verifier })
+
+  await assert.rejects(
+    workflow.claim('DES-001', 'carol', { idempotencyKey: 'wrong-role' }),
+    (error) => error.code === 'ROLE_MISMATCH'
+  )
+
+  const restarted = await loadWorkflow({ store, seed, verifier: seed.verifier })
+  assert.equal(restarted.listEvents().at(-1).outcome, 'rejected')
+  assert.equal(restarted.getTask('DES-001').status, 'ready')
 })

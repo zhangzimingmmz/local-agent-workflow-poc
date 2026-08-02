@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { resolveEffectiveGuidance } from '../src/policy.js'
 import { createSeed } from '../src/seed.js'
 
 test('seed creates six virtual accounts, six dependency-linked work items and five policy scopes', () => {
@@ -14,4 +15,21 @@ test('seed creates six virtual accounts, six dependency-linked work items and fi
   assert.equal(seed.tasks.length, 6)
   assert.deepEqual(seed.tasks.find((task) => task.id === 'DEV-001').dependencyIds, ['DES-001', 'DES-002'])
   assert.deepEqual(new Set(seed.policies.map((policy) => policy.scope)), new Set(['organization', 'team', 'project', 'module', 'work_item']))
+})
+
+test('every seeded work item resolves guidance from all five scope levels', () => {
+  const seed = createSeed({
+    alice: 'token-a', bob: 'token-b', carol: 'token-c',
+    dave: 'token-d', erin: 'token-e', frank: 'token-f'
+  })
+
+  for (const task of seed.tasks) {
+    const guidance = resolveEffectiveGuidance(seed.policies, {
+      organizationId: 'northstar', teamId: 'delivery', projectId: task.projectId,
+      moduleId: task.moduleId, workItemId: task.id, role: task.role
+    })
+    assert.deepEqual([...new Set(guidance.sources.map((source) => source.scope))], [
+      'organization', 'team', 'project', 'module', 'work_item'
+    ])
+  }
 })
