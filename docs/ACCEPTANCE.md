@@ -19,10 +19,10 @@ This report distinguishes implemented behavior from live, repeatable demonstrati
 | AC-09 | Acceptance, not Submission, unlocks dependents | Developer list remained Blocked after design Submission; `evt-11`, `evt-12`, `evt-23`, and `evt-31` show Acceptance-driven unlocks | Live |
 | AC-10 | Signed merge Webhook plus API verification integrates work | Signed GitHub merge deliveries were processed, GitHub API facts were confirmed, and every accepted item received one `TaskIntegrated` event | Live |
 | AC-11 | Six Integrated items complete the Requirement | All six items are Integrated and `evt-38 RequirementCompleted` set `REQ-001` to Completed | Live |
-| AC-12 | Successful and rejected actions appear as ordered events | The dashboard and PostgreSQL contain 38 ordered success/rejection events with correlation and reason data | Live |
+| AC-12 | Successful and rejected actions appear as ordered events | The dashboard and PostgreSQL contain 38 ordered success/rejection events with correlation and reason data; new local actions also carry opaque Workstation and Agent Session context without backfilling history | Live + automated |
 | AC-13 | Restart preserves identities, state, evidence, events, and policies | Before/after restart fingerprint was identical: version 34, Completed, 6 tasks, 38 events, 6 Agent Runs, 14 deliveries; backup restored identically into an isolated database | Live |
 | AC-14 | Browser/API use Tailscale; PostgreSQL has no host port | Control plane is live on the Tailscale address; Compose has no DB port mapping; public edge exposes only the Webhook route | Live |
-| AC-15 | Fresh Codex session completes owner/reviewer flow with Skill only | The installed Skill/CLI completed every Owner and Reviewer flow, including idempotent recovery; independent fresh human Codex sessions on two machines remain a rollout exercise | Technical live; human rollout open |
+| AC-15 | Fresh Codex session completes owner/reviewer flow with Skill only | The Skill/CLI requires a configured Workstation and fresh Session ID, uses session-scoped idempotency, and the browser E2E reconstructs distinct Owner/Reviewer sessions across two Workstations; independent fresh human Codex sessions remain open | Automated + deployed; human rollout open |
 | AC-16 | Invalid signature changes no trusted state | Automated raw-body test and live public `401 INVALID_SIGNATURE` capture exist | Live |
 | AC-17 | Delivery replay is exactly once | Signed delivery `acceptance-replay-001` returned `duplicate:false` then `duplicate:true`; one row exists with one attempt | Live |
 | AC-18 | Reconciliation recovers a missed merge exactly once | One design merge missed immediate Integration and reconciliation later produced only `evt-14`; automated recovery tests also pass | Live + automated |
@@ -38,7 +38,7 @@ This report distinguishes implemented behavior from live, repeatable demonstrati
 | 5 | Control-plane containers | `Dockerfile`, `docker-compose.yml`, deployed healthy services | Live |
 | 6 | TLS Webhook edge | `deploy/traefik/workflow-hook.yml`, valid certificate and GitHub hook | Live |
 | 7 | Sanitized Account configuration examples | `examples/accounts/*.env.example` | Present |
-| 8 | Automated unit/API/persistence/GitHub/Webhook/CLI/browser tests | 65 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer lifecycle, child parent relation, role lanes, blocking, evidence, guidance, events, and metrics; GitHub Actions passes | Present |
+| 8 | Automated unit/API/persistence/GitHub/Webhook/CLI/browser tests | 69 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer lifecycle, two Workstations, distinct Agent Sessions, child parent relation, role lanes, blocking, evidence, guidance, events, and metrics; GitHub Actions passes | Present |
 | 9 | End-to-end demonstration runbook | `docs/RUNBOOK.md` | Present |
 | 10 | AC-01 through AC-18 acceptance report | This document and `deliverables/test/acceptance-report.md` | Present |
 

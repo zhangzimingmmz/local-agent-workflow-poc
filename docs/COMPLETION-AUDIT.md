@@ -18,13 +18,13 @@ No Account token, GitHub token, or Webhook secret is included in this report.
 
 | Evidence | Direct observation |
 | --- | --- |
-| Deployed application revision | `24d29d8` in both deployed application directories |
-| CI | GitHub Actions run `30764290128` completed successfully for `24d29d8`, including Chromium installation and browser E2E |
-| Local verification | 65/65 unit/integration tests and 1/1 Playwright Chromium E2E passed; coverage 91.88% statements, 82.97% branches, 87.78% functions, and 91.88% lines |
+| Deployed application revision | `591d7de` in both deployed application directories |
+| CI | GitHub Actions run `30765060292` completed successfully for `591d7de`, including Chromium installation and browser E2E |
+| Local verification | 69/69 unit/integration tests and 1/1 Playwright Chromium E2E passed; coverage 92.52% statements, 83.73% branches, 88.23% functions, and 92.52% lines |
 | Dependency audit | `npm audit --audit-level=high` reported 0 vulnerabilities |
 | Deployment configuration | `docker compose --env-file .env.example config --quiet` passed |
-| Completed instance | healthy; `completed | 6 tasks | 38 events | 6 runs | 14 deliveries` |
-| Rollout instance | healthy; `in_progress | 6 tasks | 0 events | 0 runs | 0 deliveries` |
+| Completed instance | healthy; `completed | 6 tasks | 38 events | 6 runs | 0 session evidence | 14 deliveries`; historical events are not backfilled |
+| Rollout instance | healthy; `in_progress | 6 tasks | 0 events | 0 runs | 0 sessions | 0 deliveries`; six Account files carry the two configured Workstation assignments but no persisted Session ID |
 | Browser observation, completed instance | `REQ-001` Completed; six Integrated cards in Designer, Developer, and Tester lanes; verified Git evidence; five guidance versions; 38 ordered events; active, queue, and review metrics |
 | Browser observation, rollout instance | two design items Ready; four downstream items Blocked with explicit dependency reasons; no evidence/events yet; initial Queue and Blocked durations increase from persisted creation facts |
 | Public/private boundary | user API remains on Tailscale; the public domain exposes the GitHub Webhook path; PostgreSQL has no host port mapping |
@@ -64,10 +64,10 @@ Status meanings:
 | AC-09 | Live proven | Live `TaskUnblocked` events follow Acceptance, and the untouched rollout visibly remains Blocked. |
 | AC-10 | Live proven | Accepted work was integrated only after signed merge delivery or reconciliation plus GitHub API verification. |
 | AC-11 | Live proven | Six Integrated Work Items produced `RequirementCompleted` for `REQ-001`. |
-| AC-12 | Live + automated | Browser and PostgreSQL show 38 ordered success/rejection events. New Submission envelopes include hierarchy, role, Agent, Git, and guidance context in tests; old events are not retroactively rewritten. An authenticated `start` whose Effective Guidance resolution is rejected records one idempotent `ActionRejected` without changing the Work Item. Invalid bearer credentials remain outside trusted workflow events because they cannot be bound to an Account or Role Assignment. |
-| AC-13 | Live proven | Restart preserved the completed fingerprint; backup/restore was also verified in an isolated database. Both current instances survived deployment of `24d29d8` without state changes. |
+| AC-12 | Live + automated | Browser and PostgreSQL show 38 ordered success/rejection events. New local actions carry Account, Role Assignment, Agent type, Workstation ID, Agent Session ID, hierarchy, Git, and guidance context; old events are not retroactively rewritten. An authenticated `start` whose Effective Guidance resolution is rejected records one idempotent `ActionRejected` without changing the Work Item. Invalid bearer credentials remain outside trusted workflow events because they cannot be bound to an Account or Role Assignment. |
+| AC-13 | Live proven | Restart preserved the completed fingerprint; backup/restore was also verified in an isolated database. Both current instances survived deployment of `591d7de` without state changes. |
 | AC-14 | Live proven with noted browser path | Direct Tailscale health checks pass; browser content was verified through a temporary SSH-over-Tailscale loopback forward; database is container-private and only the Webhook route is public. |
-| AC-15 | **Human rollout open** | Skill discovery, CLI behavior, status lookup, idempotent retry, and six technical flows are proven. Two human workstations with separate fresh Codex sessions remain mandatory. |
+| AC-15 | **Human rollout open; evidence path deployed** | Skill discovery, CLI behavior, status lookup, session-scoped idempotent retry, Account-to-Workstation binding, session-conflict rejection, and a two-Workstation Owner/Reviewer browser flow are automated and deployed. The isolated rollout still requires the prescribed humans to create the fresh sessions. |
 | AC-16 | Live proven | Invalid/missing signature returns `401 INVALID_SIGNATURE` before trusted persistence; raw-body behavior is automated. |
 | AC-17 | Live proven | One delivery ID returned first-seen then duplicate and produced one stored processing result. |
 | AC-18 | Live + automated | A missed merge was reconciled exactly once in the completed run; recovery and idempotency tests pass. |
@@ -83,7 +83,7 @@ Status meanings:
 | 5 | Container deployment | Present + live | Two isolated healthy application/database stacks on the control-plane host |
 | 6 | TLS Webhook edge | Present + live | Public edge forwards only `/webhooks/github` to the private control plane |
 | 7 | Sanitized Account examples | Present | Real rollout credentials remain server-side with mode `600` and are not copied into this report |
-| 8 | Automated tests | Present | 65 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer flow, child decomposition, role lanes, dependency blocking, verified evidence, guidance versions, events, and metrics. CI retains the HTML report, screenshot, and trace on failure. |
+| 8 | Automated tests | Present | 69 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer flow, two Workstations, distinct Agent Sessions, child decomposition, role lanes, dependency blocking, verified evidence, guidance versions, events, and metrics. CI retains the HTML report, screenshot, and trace on failure. |
 | 9 | Demonstration runbook | Present | `RUNBOOK.md` covers the technical demo; `ROLLOUT.md` covers the strict two-workstation proof |
 | 10 | Acceptance report | Present | `ACCEPTANCE.md`, the test deliverable, and this stricter audit map evidence to AC-01 through AC-18 |
 
@@ -99,6 +99,7 @@ These are in GitHub `main`, CI, and both deployed instances:
 6. Multiple authoritative Role Assignments per Account, scoped from Organization through Work Item, with exact assignment identity in new Activity Events and legacy snapshot compatibility.
 7. A maintained Playwright Chromium E2E and CI gate that executes a scoped owner/reviewer flow and proves child-parent visibility on the dashboard.
 8. Idempotent `ActionRejected` persistence when authenticated `start` fails during Effective Guidance resolution, without changing the Work Item.
+9. Opaque local execution evidence on every CLI action: Account-bound Workstation IDs, fresh Agent Session IDs, cross-context conflict rejection, session-scoped retries, and dashboard counts derived from Activity Events.
 
 The rollout repository intentionally remains on its older application-feature baseline because its human Requirement is to implement the status capability through the workflow. The rollout control plane itself runs the current orchestration application.
 
@@ -106,7 +107,7 @@ The rollout repository intentionally remains on its older application-feature ba
 
 1. **Human rollout:** the only strict completion blocker. Workstation A must operate Alice, Carol, and Erin; workstation B must operate Bob, Dave, and Frank. Each Account needs its own clone and fresh Codex session.
 2. **Audit trust boundary (not an implementation gap):** authenticated, Work Item-bound policy rejections carrying an `Idempotency-Key` are persisted as append-only Activity Events. Invalid bearer authentication is not admitted to the trusted workflow event stream because no Account or Role Assignment can be established; it remains an HTTP/security-log concern.
-3. **Newest live mutation evidence:** trusted-repository enforcement, enriched event envelopes, child splitting, and multiple scoped Role Assignments are tested and deployed. Child splitting is exercised in the isolated browser E2E but not used to mutate the preserved rollout database, and historical completed events are not backfilled.
+3. **Newest live mutation evidence:** trusted-repository enforcement, enriched event envelopes, child splitting, multiple scoped Role Assignments, and local Agent Session evidence are tested and deployed. A live partial-context request was rejected before workflow mutation and left the rollout at zero events; valid session evidence is intentionally awaiting the human rollout. Historical completed events are not backfilled.
 4. **Legacy timing history:** the completed snapshot predates persisted task creation timestamps, so its initial Blocked duration cannot be reconstructed exactly and the dashboard correctly shows `No data`. Newly seeded and dynamically split work persists the necessary facts; the rollout instance visibly reports both initial Queue and Blocked time.
 
 ## Exact remaining acceptance run
@@ -119,7 +120,7 @@ Follow `ROLLOUT.md` without resetting either database:
 4. Complete and cross-review `DEV-001` and `DEV-002`, then merge them.
 5. Complete, review, and merge `TST-001`; then complete, review, and merge `TST-002`.
 6. Preserve session-level facts without prompts: Account, Work Item, Agent Run ID, guidance snapshot, branch, commit, PR, Artifact paths, review result, merge SHA, and ordered events.
-7. Confirm the rollout dashboard shows six Integrated Work Items and `REQ-001` Completed while the completed instance fingerprint remains unchanged.
+7. Confirm the rollout dashboard shows six Integrated Work Items, `REQ-001` Completed, six Accounts, exactly two Workstations, and at least twelve distinct Owner/Reviewer Agent Sessions while the completed instance fingerprint remains unchanged.
 8. Attach the two-workstation evidence to the acceptance report. Only then mark AC-15 and the overall completion definition complete.
 
 Until that run finishes, the accurate project status is: **technical PoC ready; strict multi-workstation human acceptance pending**.
