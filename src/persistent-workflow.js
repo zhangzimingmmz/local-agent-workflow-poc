@@ -11,36 +11,40 @@ class PersistentWorkflowService {
   getRequirement(requirementId) { return this.domain.getRequirement(requirementId) }
   listTasks(actorId) { return this.domain.listTasks(actorId) }
   listEvents() { return this.domain.listEvents() }
+  listAgentRuns() { return this.domain.listAgentRuns() }
+  getAgentRunForTask(taskId, actorId) { return this.domain.getAgentRunForTask(taskId, actorId) }
   dashboard() { return this.domain.dashboard() }
 
-  async claim(taskId, actorId) {
-    const result = this.domain.claim(taskId, actorId)
-    await this.#persist()
-    return result
+  async claim(taskId, actorId, options) {
+    return this.#execute(() => this.domain.claim(taskId, actorId, options))
   }
 
-  async start(taskId, actorId) {
-    const result = this.domain.start(taskId, actorId)
-    await this.#persist()
-    return result
+  async start(taskId, actorId, agentRun, options) {
+    return this.#execute(() => this.domain.start(taskId, actorId, agentRun, options))
   }
 
-  async submit(taskId, actorId, evidence) {
-    const result = await this.domain.submit(taskId, actorId, evidence)
-    await this.#persist()
-    return result
+  async submit(taskId, actorId, evidence, options) {
+    return this.#execute(() => this.domain.submit(taskId, actorId, evidence, options))
   }
 
-  async review(taskId, actorId, decision, note) {
-    const result = this.domain.review(taskId, actorId, decision, note)
-    await this.#persist()
-    return result
+  async review(taskId, actorId, decision, note, options) {
+    return this.#execute(() => this.domain.review(taskId, actorId, decision, note, options))
   }
 
-  async integrateByPullRequest(url, sha) {
-    const result = this.domain.integrateByPullRequest(url, sha)
-    await this.#persist()
-    return result
+  async integrateByPullRequest(url, sha, options) {
+    return this.#execute(() => this.domain.integrateByPullRequest(url, sha, options))
+  }
+
+  async #execute(action) {
+    const revision = this.domain.mutationRevision()
+    try {
+      const result = await action()
+      if (this.domain.mutationRevision() !== revision) await this.#persist()
+      return result
+    } catch (error) {
+      if (this.domain.mutationRevision() !== revision) await this.#persist()
+      throw error
+    }
   }
 
   async #persist() {

@@ -30,8 +30,14 @@ export function createSeed(tokens) {
     { id: 'project-design', scope: 'project', scopeId: 'agent-workflow', role: 'designer', version: 1, rules: { requiredSections: ['problem', 'solution', 'risks', 'acceptance'] } },
     { id: 'project-dev', scope: 'project', scopeId: 'agent-workflow', role: 'developer', version: 1, rules: { requiresTests: true, minCoverage: 80 } },
     { id: 'project-test', scope: 'project', scopeId: 'agent-workflow', role: 'tester', version: 1, rules: { separateEvidenceFromConclusion: true } },
+    { id: 'module-common', scope: 'module', scopeId: 'workflow-core', role: '*', version: 1, rules: { artifactRoot: 'deliverables/' } },
     { id: 'module-events', scope: 'module', scopeId: 'workflow-core', role: 'developer', version: 1, rules: { appendOnlyEvents: true } },
-    { id: 'task-dev-001', scope: 'work_item', scopeId: 'DEV-001', role: 'developer', version: 1, rules: { requiredArtifacts: ['source', 'migration', 'tests'] } }
+    { id: 'task-des-001', scope: 'work_item', scopeId: 'DES-001', role: 'designer', version: 1, rules: { requiredArtifacts: ['design'] } },
+    { id: 'task-des-002', scope: 'work_item', scopeId: 'DES-002', role: 'designer', version: 1, rules: { requiredArtifacts: ['acceptance-scenarios'] } },
+    { id: 'task-dev-001', scope: 'work_item', scopeId: 'DEV-001', role: 'developer', version: 1, rules: { requiredArtifacts: ['source', 'migration', 'tests'] } },
+    { id: 'task-dev-002', scope: 'work_item', scopeId: 'DEV-002', role: 'developer', version: 1, rules: { requiredArtifacts: ['skill', 'cli'] } },
+    { id: 'task-tst-001', scope: 'work_item', scopeId: 'TST-001', role: 'tester', version: 1, rules: { requiredArtifacts: ['automated-results', 'evidence-manifest'] } },
+    { id: 'task-tst-002', scope: 'work_item', scopeId: 'TST-002', role: 'tester', version: 1, rules: { requiredArtifacts: ['acceptance-report'] } }
   ]
   return {
     users,

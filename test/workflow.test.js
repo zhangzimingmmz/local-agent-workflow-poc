@@ -71,7 +71,9 @@ test('only an accepted task can become integrated and complete its requirement',
 })
 
 test('a started task records one Codex Agent Run with its exact guidance snapshot', () => {
-  const workflow = new WorkflowService(workflowFixture())
+  const fixture = workflowFixture()
+  fixture.clock = () => new Date('2026-08-03T00:00:00.000Z')
+  const workflow = new WorkflowService(fixture)
   const guidanceSnapshot = {
     rules: { branchPrefix: 'work/' },
     sources: [{ id: 'team-common', version: 1, scope: 'team', role: '*' }],
@@ -109,7 +111,9 @@ test('an idempotency key replays one successful command and rejects reuse for an
 })
 
 test('a rejected role or state check creates one audit event without changing task state', () => {
-  const workflow = new WorkflowService(workflowFixture())
+  const fixture = workflowFixture()
+  fixture.clock = () => new Date('2026-08-03T00:00:00.000Z')
+  const workflow = new WorkflowService(fixture)
 
   assert.throws(
     () => workflow.claim('DES-001', 'carol', { idempotencyKey: 'wrong-role' }),

@@ -30,7 +30,11 @@ const app = buildApp({
   users: seed.users,
   policies: seed.policies,
   resolveEffectiveGuidance,
-  webhook
+  webhook,
+  healthCheck: async () => {
+    await pool.query('select 1')
+    return { database: 'ok' }
+  }
 })
 
 const webhookTimer = setInterval(() => {

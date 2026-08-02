@@ -40,7 +40,7 @@ test('API reports the authenticated human account without exposing its token has
 test('API resolves guidance and records a claim event', async (t) => {
   const { app } = setup()
   t.after(() => app.close())
-  const headers = { authorization: 'Bearer demo-alice' }
+  const headers = { authorization: 'Bearer demo-alice', 'idempotency-key': 'claim-guidance' }
   const policy = await app.inject({ method: 'GET', url: '/api/v1/tasks/DES-001/guidance', headers })
   assert.equal(policy.statusCode, 200)
   assert.equal(policy.json().rules.branchPrefix, 'work/')
@@ -58,10 +58,13 @@ test('API drives the owner and reviewer lifecycle without exposing token hashes'
   const alice = { authorization: 'Bearer demo-alice', 'content-type': 'application/json' }
   const bob = { authorization: 'Bearer demo-bob', 'content-type': 'application/json' }
 
-  assert.equal((await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers: alice })).statusCode, 200)
-  assert.equal((await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/start', headers: alice })).json().task.status, 'in_progress')
+  assert.equal((await app.inject({ method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers: { ...alice, 'idempotency-key': 'lifecycle-claim' } })).statusCode, 200)
+  assert.equal((await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/start',
+    headers: { ...alice, 'idempotency-key': 'lifecycle-start' }, payload: '{}'
+  })).json().task.status, 'in_progress')
   const submission = await app.inject({
-    method: 'POST', url: '/api/v1/tasks/DES-001/submit', headers: alice,
+    method: 'POST', url: '/api/v1/tasks/DES-001/submit', headers: { ...alice, 'idempotency-key': 'lifecycle-submit' },
     payload: JSON.stringify({
       repository: 'zhangzimingmmz/local-agent-workflow-poc', baseBranch: 'main',
       branch: 'work/DES-001-design', commitSha: 'a'.repeat(40),
@@ -71,7 +74,7 @@ test('API drives the owner and reviewer lifecycle without exposing token hashes'
   })
   assert.equal(submission.json().task.status, 'submitted')
   assert.equal((await app.inject({
-    method: 'POST', url: '/api/v1/tasks/DES-001/review', headers: bob,
+    method: 'POST', url: '/api/v1/tasks/DES-001/review', headers: { ...bob, 'idempotency-key': 'lifecycle-review' },
     payload: JSON.stringify({ decision: 'accept', note: 'Ready for development' })
   })).json().task.status, 'accepted')
 
@@ -124,7 +127,8 @@ test('API awaits a persistent service before serializing a state change', async 
   })
   t.after(() => app.close())
   const response = await app.inject({
-    method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers: { authorization: 'Bearer demo-alice' }
+    method: 'POST', url: '/api/v1/tasks/DES-001/claim',
+    headers: { authorization: 'Bearer demo-alice', 'idempotency-key': 'persistent-claim' }
   })
   assert.equal(response.statusCode, 200)
   assert.equal(response.json().task.ownerId, 'alice')
