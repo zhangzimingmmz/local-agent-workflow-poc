@@ -91,3 +91,28 @@ test('dashboard HTML presents the requirement and role lanes', async (t) => {
   assert.match(response.body, /Northstar Labs/)
   assert.match(response.body, /Design.*Development.*Testing/s)
 })
+
+test('API awaits a persistent service before serializing a state change', async (t) => {
+  const fixture = workflowFixture()
+  const domain = new WorkflowService(fixture)
+  const service = new Proxy(domain, {
+    get(target, property) {
+      const value = target[property]
+      if (property === 'claim') return async (...args) => value.apply(target, args)
+      return typeof value === 'function' ? value.bind(target) : value
+    }
+  })
+  const app = buildApp({
+    service,
+    users: fixture.users,
+    policies: [],
+    resolveEffectiveGuidance,
+    webhook: new WebhookProcessor({ secret: 'test-secret', inbox: new InMemoryWebhookInbox(), onEvent: async () => {} })
+  })
+  t.after(() => app.close())
+  const response = await app.inject({
+    method: 'POST', url: '/api/v1/tasks/DES-001/claim', headers: { authorization: 'Bearer demo-alice' }
+  })
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().task.ownerId, 'alice')
+})
