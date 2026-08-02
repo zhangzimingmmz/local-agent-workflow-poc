@@ -198,9 +198,11 @@ test('a rejected role or state check creates one audit event without changing ta
   assert.equal(workflow.getTask('DES-001').status, 'ready')
   assert.deepEqual(workflow.listEvents().at(-1), {
     id: 'evt-1', correlationId: 'wrong-role', type: 'ActionRejected', command: 'claim',
-    actorId: 'carol', taskId: 'DES-001', requirementId: 'REQ-001',
+    actorId: 'carol', taskId: 'DES-001', workItemId: 'DES-001', requirementId: 'REQ-001',
     previousStatus: 'ready', status: 'ready', outcome: 'rejected',
     reasonCode: 'ROLE_MISMATCH', reason: 'carol cannot claim designer work',
-    occurredAt: '2026-08-03T00:00:00.000Z'
+    occurredAt: '2026-08-03T00:00:00.000Z',
+    organizationId: 'northstar', teamId: 'delivery', projectId: 'agent-workflow', moduleId: 'workflow-core',
+    roleAssignment: { accountId: 'carol', role: 'developer', scope: 'project', scopeId: 'agent-workflow' }
   })
 })

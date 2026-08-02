@@ -226,6 +226,7 @@ export class WorkflowService {
     for (const task of this.tasks.values()) byStatus[task.status] = (byStatus[task.status] ?? 0) + 1
     const tasks = [...this.tasks.values()].map((task) => ({
       ...copy(task),
+      guidanceSnapshot: copy(this.agentRuns.findLast((run) => run.taskId === task.id)?.guidanceSnapshot ?? null),
       blockingReason: task.status === 'blocked'
         ? `Blocked by ${task.dependencyIds.filter((id) => !['accepted', 'integrated'].includes(this.#task(id).status)).join(', ')}`
         : null
@@ -360,13 +361,15 @@ export class WorkflowService {
       command: context.command,
       actorId: context.actorId,
       taskId: context.taskId,
+      workItemId: context.taskId,
       requirementId: task?.requirementId,
       previousStatus: task?.status,
       status: task?.status,
       outcome: 'rejected',
       reasonCode: error.code,
       reason: error.message,
-      occurredAt: this.clock().toISOString()
+      occurredAt: this.clock().toISOString(),
+      ...this.#traceContext(task, context.actorId)
     })
     this.revision += 1
     this.#recordCommand(context, 'rejected', undefined, { code: error.code, message: error.message })
@@ -381,11 +384,13 @@ export class WorkflowService {
       type,
       actorId,
       taskId: task.id,
+      workItemId: task.id,
       requirementId: task.requirementId,
       previousStatus,
       status,
       outcome: 'succeeded',
       occurredAt: this.clock().toISOString(),
+      ...this.#traceContext(task, actorId),
       ...copy(data)
     })
     this.revision += 1
@@ -409,9 +414,41 @@ export class WorkflowService {
         id: `evt-${this.events.length + 1}`,
         ...(correlationId ? { correlationId } : {}),
         type: 'RequirementCompleted', actorId: 'github', requirementId,
-        previousStatus, status: 'completed', outcome: 'succeeded', occurredAt: this.clock().toISOString()
+        previousStatus, status: 'completed', outcome: 'succeeded', occurredAt: this.clock().toISOString(),
+        ...this.#traceContext(tasks[0], 'github')
       })
       this.revision += 1
+    }
+  }
+
+  #traceContext(task, actorId) {
+    if (!task) return {}
+    const actor = this.users.get(actorId)
+    const run = this.agentRuns.findLast((candidate) => candidate.taskId === task.id)
+    const guidance = run?.guidanceSnapshot
+    const evidence = task.evidence
+    return {
+      organizationId: task.organizationId ?? this.organization?.id,
+      teamId: task.teamId ?? this.team?.id,
+      projectId: task.projectId,
+      moduleId: task.moduleId,
+      ...(actor ? {
+        roleAssignment: {
+          accountId: actor.id,
+          role: actor.role,
+          scope: 'project',
+          scopeId: task.projectId
+        }
+      } : {}),
+      ...(run ? { agentType: run.agentType } : {}),
+      ...(evidence?.repository || run?.repository ? { repository: evidence?.repository ?? run.repository } : {}),
+      ...(evidence?.branch || run?.branch ? { branch: evidence?.branch ?? run.branch } : {}),
+      ...(evidence?.commitSha ? { commitSha: evidence.commitSha } : {}),
+      ...(evidence?.pullRequestUrl ? { pullRequestUrl: evidence.pullRequestUrl } : {}),
+      ...(guidance?.sources ? {
+        guidanceSourceVersions: guidance.sources.map(({ id, scope, role, version }) => ({ id, scope, role, version }))
+      } : {}),
+      ...(guidance?.snapshotHash ? { guidanceSnapshotHash: guidance.snapshotHash } : {})
     }
   }
 }
