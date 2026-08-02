@@ -18,9 +18,9 @@ No Account token, GitHub token, or Webhook secret is included in this report.
 
 | Evidence | Direct observation |
 | --- | --- |
-| Deployed application revision | `d17186b` in both deployed application directories |
-| CI | GitHub Actions run `30764129958` completed successfully for `d17186b`, including Chromium installation and browser E2E |
-| Local verification | 64/64 unit/integration tests and 1/1 Playwright Chromium E2E passed; coverage 91.67% statements, 82.48% branches, 88.37% functions, and 91.67% lines |
+| Deployed application revision | `24d29d8` in both deployed application directories |
+| CI | GitHub Actions run `30764290128` completed successfully for `24d29d8`, including Chromium installation and browser E2E |
+| Local verification | 65/65 unit/integration tests and 1/1 Playwright Chromium E2E passed; coverage 91.88% statements, 82.97% branches, 87.78% functions, and 91.88% lines |
 | Dependency audit | `npm audit --audit-level=high` reported 0 vulnerabilities |
 | Deployment configuration | `docker compose --env-file .env.example config --quiet` passed |
 | Completed instance | healthy; `completed | 6 tasks | 38 events | 6 runs | 14 deliveries` |
@@ -64,8 +64,8 @@ Status meanings:
 | AC-09 | Live proven | Live `TaskUnblocked` events follow Acceptance, and the untouched rollout visibly remains Blocked. |
 | AC-10 | Live proven | Accepted work was integrated only after signed merge delivery or reconciliation plus GitHub API verification. |
 | AC-11 | Live proven | Six Integrated Work Items produced `RequirementCompleted` for `REQ-001`. |
-| AC-12 | Live + automated | Browser and PostgreSQL show 38 ordered success/rejection events. New Submission envelopes include hierarchy, role, Agent, Git, and guidance context in tests; old events are not retroactively rewritten. Authentication failures and read-only policy-resolution failures are not currently persisted as Activity Events. |
-| AC-13 | Live proven | Restart preserved the completed fingerprint; backup/restore was also verified in an isolated database. Both current instances survived deployment of `83a040a` without state changes. |
+| AC-12 | Live + automated | Browser and PostgreSQL show 38 ordered success/rejection events. New Submission envelopes include hierarchy, role, Agent, Git, and guidance context in tests; old events are not retroactively rewritten. An authenticated `start` whose Effective Guidance resolution is rejected records one idempotent `ActionRejected` without changing the Work Item. Invalid bearer credentials remain outside trusted workflow events because they cannot be bound to an Account or Role Assignment. |
+| AC-13 | Live proven | Restart preserved the completed fingerprint; backup/restore was also verified in an isolated database. Both current instances survived deployment of `24d29d8` without state changes. |
 | AC-14 | Live proven with noted browser path | Direct Tailscale health checks pass; browser content was verified through a temporary SSH-over-Tailscale loopback forward; database is container-private and only the Webhook route is public. |
 | AC-15 | **Human rollout open** | Skill discovery, CLI behavior, status lookup, idempotent retry, and six technical flows are proven. Two human workstations with separate fresh Codex sessions remain mandatory. |
 | AC-16 | Live proven | Invalid/missing signature returns `401 INVALID_SIGNATURE` before trusted persistence; raw-body behavior is automated. |
@@ -83,7 +83,7 @@ Status meanings:
 | 5 | Container deployment | Present + live | Two isolated healthy application/database stacks on the control-plane host |
 | 6 | TLS Webhook edge | Present + live | Public edge forwards only `/webhooks/github` to the private control plane |
 | 7 | Sanitized Account examples | Present | Real rollout credentials remain server-side with mode `600` and are not copied into this report |
-| 8 | Automated tests | Present | 64 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer flow, child decomposition, role lanes, dependency blocking, verified evidence, guidance versions, events, and metrics. CI retains the HTML report, screenshot, and trace on failure. |
+| 8 | Automated tests | Present | 65 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer flow, child decomposition, role lanes, dependency blocking, verified evidence, guidance versions, events, and metrics. CI retains the HTML report, screenshot, and trace on failure. |
 | 9 | Demonstration runbook | Present | `RUNBOOK.md` covers the technical demo; `ROLLOUT.md` covers the strict two-workstation proof |
 | 10 | Acceptance report | Present | `ACCEPTANCE.md`, the test deliverable, and this stricter audit map evidence to AC-01 through AC-18 |
 
@@ -98,13 +98,14 @@ These are in GitHub `main`, CI, and both deployed instances:
 5. Owner-controlled child Work Item split and eligible-role assignment with inheritance, dependency separation, idempotency, and audit events.
 6. Multiple authoritative Role Assignments per Account, scoped from Organization through Work Item, with exact assignment identity in new Activity Events and legacy snapshot compatibility.
 7. A maintained Playwright Chromium E2E and CI gate that executes a scoped owner/reviewer flow and proves child-parent visibility on the dashboard.
+8. Idempotent `ActionRejected` persistence when authenticated `start` fails during Effective Guidance resolution, without changing the Work Item.
 
 The rollout repository intentionally remains on its older application-feature baseline because its human Requirement is to implement the status capability through the workflow. The rollout control plane itself runs the current orchestration application.
 
-## Known gaps that should not be hidden
+## Known gaps and boundaries that should not be hidden
 
 1. **Human rollout:** the only strict completion blocker. Workstation A must operate Alice, Carol, and Erin; workstation B must operate Bob, Dave, and Frank. Each Account needs its own clone and fresh Codex session.
-2. **Audit boundary:** authenticated domain command failures are persisted, but invalid bearer authentication and read-only policy-resolution failures are not append-only Activity Events. The goal language is broader than the current implementation.
+2. **Audit trust boundary (not an implementation gap):** authenticated, Work Item-bound policy rejections carrying an `Idempotency-Key` are persisted as append-only Activity Events. Invalid bearer authentication is not admitted to the trusted workflow event stream because no Account or Role Assignment can be established; it remains an HTTP/security-log concern.
 3. **Newest live mutation evidence:** trusted-repository enforcement, enriched event envelopes, child splitting, and multiple scoped Role Assignments are tested and deployed. Child splitting is exercised in the isolated browser E2E but not used to mutate the preserved rollout database, and historical completed events are not backfilled.
 4. **Legacy timing history:** the completed snapshot predates persisted task creation timestamps, so its initial Blocked duration cannot be reconstructed exactly and the dashboard correctly shows `No data`. Newly seeded and dynamically split work persists the necessary facts; the rollout instance visibly reports both initial Queue and Blocked time.
 

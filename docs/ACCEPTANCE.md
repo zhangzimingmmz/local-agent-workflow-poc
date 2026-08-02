@@ -38,7 +38,7 @@ This report distinguishes implemented behavior from live, repeatable demonstrati
 | 5 | Control-plane containers | `Dockerfile`, `docker-compose.yml`, deployed healthy services | Live |
 | 6 | TLS Webhook edge | `deploy/traefik/workflow-hook.yml`, valid certificate and GitHub hook | Live |
 | 7 | Sanitized Account configuration examples | `examples/accounts/*.env.example` | Present |
-| 8 | Automated unit/API/persistence/GitHub/Webhook/CLI/browser tests | 64 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer lifecycle, child parent relation, role lanes, blocking, evidence, guidance, events, and metrics; GitHub Actions passes | Present |
+| 8 | Automated unit/API/persistence/GitHub/Webhook/CLI/browser tests | 65 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer lifecycle, child parent relation, role lanes, blocking, evidence, guidance, events, and metrics; GitHub Actions passes | Present |
 | 9 | End-to-end demonstration runbook | `docs/RUNBOOK.md` | Present |
 | 10 | AC-01 through AC-18 acceptance report | This document and `deliverables/test/acceptance-report.md` | Present |
 
