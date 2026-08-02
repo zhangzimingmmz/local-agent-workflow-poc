@@ -36,8 +36,13 @@ export class InMemoryWebhookInbox {
     return [...this.deliveries.values()].map((delivery) => structuredClone(delivery))
   }
 
-  pending() {
-    return [...this.deliveries.values()].filter((delivery) => ['pending', 'failed'].includes(delivery.status))
+  pending(now = new Date().toISOString()) {
+    const current = new Date(now).getTime()
+    return [...this.deliveries.values()].filter((delivery) => (
+      delivery.status === 'pending' || (
+        delivery.status === 'failed' && (!delivery.nextRetryAt || new Date(delivery.nextRetryAt).getTime() <= current)
+      )
+    ))
   }
 
   update(id, patch) {
@@ -46,11 +51,13 @@ export class InMemoryWebhookInbox {
 }
 
 export class WebhookProcessor {
-  constructor({ secret, inbox, onEvent, clock = () => new Date() }) {
+  constructor({ secret, inbox, onEvent, clock = () => new Date(), retryBaseMs = 1000, retryMaxMs = 60000 }) {
     this.secret = secret
     this.inbox = inbox
     this.onEvent = onEvent
     this.clock = clock
+    this.retryBaseMs = retryBaseMs
+    this.retryMaxMs = retryMaxMs
   }
 
   async receive(headers, rawBody) {
@@ -75,13 +82,21 @@ export class WebhookProcessor {
 
   async processPending() {
     let processed = 0
-    for (const delivery of await this.inbox.pending()) {
+    for (const delivery of await this.inbox.pending(this.clock().toISOString())) {
       try {
         await this.onEvent(structuredClone(delivery))
-        await this.inbox.update(delivery.id, { status: 'processed', processedAt: this.clock().toISOString(), attempts: delivery.attempts + 1, lastError: null })
+        await this.inbox.update(delivery.id, {
+          status: 'processed', processedAt: this.clock().toISOString(),
+          attempts: delivery.attempts + 1, nextRetryAt: null, lastError: null
+        })
         processed += 1
       } catch (error) {
-        await this.inbox.update(delivery.id, { status: 'failed', attempts: delivery.attempts + 1, lastError: error.message })
+        const attempts = delivery.attempts + 1
+        const delay = Math.min(this.retryBaseMs * (2 ** (attempts - 1)), this.retryMaxMs)
+        const nextRetryAt = new Date(this.clock().getTime() + delay).toISOString()
+        await this.inbox.update(delivery.id, {
+          status: 'failed', attempts, nextRetryAt, lastError: error.message
+        })
       }
     }
     return processed

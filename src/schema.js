@@ -22,6 +22,8 @@ export const WEBHOOK_SCHEMA = `
     attempts integer not null default 0,
     received_at timestamptz not null,
     processed_at timestamptz,
+    next_retry_at timestamptz,
     last_error text
   );
+  alter table github_deliveries add column if not exists next_retry_at timestamptz;
 `

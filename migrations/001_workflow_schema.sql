@@ -20,5 +20,6 @@ create table if not exists github_deliveries (
   attempts integer not null default 0,
   received_at timestamptz not null,
   processed_at timestamptz,
+  next_retry_at timestamptz,
   last_error text
 );

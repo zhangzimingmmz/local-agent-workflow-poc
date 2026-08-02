@@ -61,6 +61,7 @@ function delivery(row) {
     attempts: row.attempts,
     receivedAt: row.received_at instanceof Date ? row.received_at.toISOString() : row.received_at,
     processedAt: row.processed_at instanceof Date ? row.processed_at.toISOString() : row.processed_at,
+    nextRetryAt: row.next_retry_at instanceof Date ? row.next_retry_at.toISOString() : row.next_retry_at,
     lastError: row.last_error
   }
 }
@@ -95,13 +96,22 @@ export class PostgresWebhookInbox {
     return result.rows.map(delivery)
   }
 
-  async pending() {
-    const result = await this.pool.query("select * from github_deliveries where status in ('pending', 'failed') order by received_at, id")
+  async pending(now = new Date().toISOString()) {
+    const result = await this.pool.query(
+      `select * from github_deliveries
+       where status = 'pending'
+          or (status = 'failed' and (next_retry_at is null or next_retry_at <= $1))
+       order by received_at, id`,
+      [now]
+    )
     return result.rows.map(delivery)
   }
 
   async update(id, patch) {
-    const columns = { status: 'status', attempts: 'attempts', processedAt: 'processed_at', lastError: 'last_error' }
+    const columns = {
+      status: 'status', attempts: 'attempts', processedAt: 'processed_at',
+      nextRetryAt: 'next_retry_at', lastError: 'last_error'
+    }
     const entries = Object.entries(patch).filter(([key]) => columns[key])
     if (entries.length === 0) return
     const setters = entries.map(([key], index) => `${columns[key]} = $${index + 1}`)
