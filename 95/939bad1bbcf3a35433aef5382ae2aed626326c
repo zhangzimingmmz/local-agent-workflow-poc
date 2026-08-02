@@ -1,0 +1,39 @@
+docs/GOALS.md
+  s_13e1caf6530d13::t_85be3c2f6ee9a9 1-352
+test/webhook.test.js
+  s_13e1caf6530d13::t_35ab84204523bd 1-50
+CONTEXT.md
+  s_13e1caf6530d13::t_85be3c2f6ee9a9 1-119
+test/fixtures.js
+  s_13e1caf6530d13::t_35ab84204523bd 1-44
+package.json
+  s_13e1caf6530d13::t_35ab84204523bd 1-23
+test/policy.test.js
+  s_13e1caf6530d13::t_35ab84204523bd 1-41
+test/workflow.test.js
+  s_13e1caf6530d13::t_35ab84204523bd 1-71
+.gitignore
+  s_13e1caf6530d13::t_35ab84204523bd 1-6
+test/api.test.js
+  s_13e1caf6530d13::t_35ab84204523bd 1-65
+test/github.test.js
+  s_13e1caf6530d13::t_35ab84204523bd 1-60
+package-lock.json
+  s_13e1caf6530d13::t_3e43e041c76972 1-2359
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "95939bad1bbcf3a35433aef5382ae2aed626326c",
+  "prompts": {},
+  "sessions": {
+    "s_13e1caf6530d13": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fc29e-117b-7591-b60d-237d4ec1297b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "liguo2 <liguo2@lenovo.com>"
+    }
+  }
+}
