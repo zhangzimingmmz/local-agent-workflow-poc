@@ -3,7 +3,18 @@ import { createHash } from 'node:crypto'
 function account(id, name, role, tokens) {
   const token = tokens[id]
   if (!token) throw new Error(`Missing demo token for ${id}`)
-  return { id, name, role, tokenHash: createHash('sha256').update(token).digest('hex') }
+  return {
+    id,
+    name,
+    roleAssignments: [{
+      id: `ra:${id}:${role}:project:agent-workflow`,
+      accountId: id,
+      role,
+      scope: 'project',
+      scopeId: 'agent-workflow'
+    }],
+    tokenHash: createHash('sha256').update(token).digest('hex')
+  }
 }
 
 export function createSeed(tokens, {

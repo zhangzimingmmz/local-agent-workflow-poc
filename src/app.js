@@ -74,7 +74,8 @@ export function buildApp({
     request.idempotencyKey = key
   }
 
-  function guidance(task, role) {
+  function guidance(task, actorId) {
+    const role = service.getRoleAssignment(task.id, actorId).role
     return resolveEffectiveGuidance(policies, {
       organizationId: task.organizationId ?? organization?.id,
       teamId: task.teamId ?? team?.id,
@@ -102,13 +103,13 @@ export function buildApp({
   app.get('/favicon.ico', async (_request, reply) => reply.code(204).send())
   app.get('/', async (_request, reply) => reply.type('text/html; charset=utf-8').send(dashboardHtml(service.dashboard())))
   app.get('/api/v1/me', { preHandler: authenticate }, async (request) => ({
-    account: { id: request.actor.id, name: request.actor.name, role: request.actor.role }
+    account: service.getAccount(request.actor.id)
   }))
   app.get('/api/v1/tasks', { preHandler: authenticate }, async (request) => ({ tasks: service.listTasks(request.actor.id) }))
   app.get('/api/v1/status/:id', { preHandler: authenticate }, async (request) => service.getStatus(request.params.id))
   app.get('/api/v1/tasks/:taskId/guidance', { preHandler: authenticate }, async (request) => {
     const task = service.getTask(request.params.taskId)
-    return guidance(task, request.actor.role)
+    return guidance(task, request.actor.id)
   })
   const commandHandlers = { preHandler: [authenticate, requireIdempotencyKey] }
   app.post('/api/v1/tasks/:taskId/claim', commandHandlers, async (request) => ({
@@ -121,7 +122,7 @@ export function buildApp({
       agentType: body.agentType ?? 'codex',
       repository: body.repository,
       branch: body.branch,
-      guidanceSnapshot: guidance(task, request.actor.role)
+      guidanceSnapshot: guidance(task, request.actor.id)
     }, { idempotencyKey: request.idempotencyKey })
     return { task: started, agentRun: service.getAgentRunForTask(task.id, request.actor.id) }
   })

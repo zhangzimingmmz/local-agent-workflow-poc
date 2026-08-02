@@ -93,15 +93,18 @@ function normalizeAccount(account, tasks, organizationId) {
     normalized.roleAssignments = normalized.roleAssignments.map((assignment) => (
       normalizedRoleAssignment(normalized, assignment)
     ))
+    delete normalized.role
     return normalized
   }
+  const legacyRole = normalized.role
   const projectIds = [...new Set(tasks
-    .filter((task) => task.role === normalized.role && task.projectId)
+    .filter((task) => task.role === legacyRole && task.projectId)
     .map((task) => task.projectId))]
   const legacyAssignments = projectIds.length > 0
-    ? projectIds.map((scopeId) => ({ role: normalized.role, scope: 'project', scopeId }))
-    : [{ role: normalized.role, scope: 'organization', scopeId: organizationId }]
+    ? projectIds.map((scopeId) => ({ role: legacyRole, scope: 'project', scopeId }))
+    : [{ role: legacyRole, scope: 'organization', scopeId: organizationId }]
   normalized.roleAssignments = legacyAssignments.map((assignment) => normalizedRoleAssignment(normalized, assignment))
+  delete normalized.role
   return normalized
 }
 
@@ -165,6 +168,19 @@ export class WorkflowService {
     throw new WorkflowError('NOT_FOUND', `Requirement or work item ${id} was not found`)
   }
 
+  getAccount(actorId) {
+    const { tokenHash: _tokenHash, ...account } = copy(this.#user(actorId))
+    return account
+  }
+
+  getRoleAssignment(taskId, actorId) {
+    const task = this.#task(taskId)
+    const actor = this.#user(actorId)
+    const assignment = matchingRoleAssignment(actor, task, task.role)
+    if (!assignment) throw new WorkflowError('ROLE_MISMATCH', `${actorId} has no ${task.role} Role Assignment for ${taskId}`)
+    return copy(assignment)
+  }
+
   listTasks(actorId) {
     const actor = this.#user(actorId)
     return [...this.tasks.values()].filter((task) => matchingRoleAssignment(actor, task, task.role)).map(copy)
@@ -199,12 +215,17 @@ export class WorkflowService {
           throw new WorkflowError('INVALID_DEPENDENCY', `${dependencyId} belongs to another Requirement`)
         }
       }
+      const assignmentTarget = {
+        ...parent,
+        id: input.id,
+        role: input.role
+      }
       const reviewer = this.#user(input.reviewerId)
-      if (reviewer.role !== input.role) {
+      if (!matchingRoleAssignment(reviewer, assignmentTarget, input.role)) {
         throw new WorkflowError('ROLE_MISMATCH', `${reviewer.id} cannot review ${input.role} work`)
       }
       const assignee = input.assigneeId ? this.#user(input.assigneeId) : null
-      if (assignee && assignee.role !== input.role) {
+      if (assignee && !matchingRoleAssignment(assignee, assignmentTarget, input.role)) {
         throw new WorkflowError('ROLE_MISMATCH', `${assignee.id} cannot own ${input.role} work`)
       }
       if (assignee?.id === reviewer.id) {
@@ -332,9 +353,12 @@ export class WorkflowService {
   async review(taskId, actorId, decision, note = '', options = {}) {
     return this.#runCommandAsync('review', taskId, actorId, { decision, note }, options, async () => {
       const task = this.#task(taskId)
-      this.#user(actorId)
+      const actor = this.#user(actorId)
       if (task.ownerId === actorId) throw new WorkflowError('SELF_REVIEW', 'An owner cannot review their own submission')
       if (task.reviewerId !== actorId) throw new WorkflowError('NOT_REVIEWER', `${actorId} is not the configured reviewer`)
+      if (!matchingRoleAssignment(actor, task, task.role)) {
+        throw new WorkflowError('ROLE_MISMATCH', `${actorId} has no ${task.role} Role Assignment for ${taskId}`)
+      }
       if (task.status !== 'submitted') throw new WorkflowError('INVALID_STATE', `${taskId} is ${task.status}, not submitted`)
       if (!['accept', 'reject'].includes(decision)) throw new WorkflowError('INVALID_DECISION', `Unknown review decision: ${decision}`)
 
