@@ -20,7 +20,7 @@ No Account token, GitHub token, or Webhook secret is included in this report.
 | --- | --- |
 | Deployed application revision | `591d7de` in both deployed application directories |
 | CI | GitHub Actions run `30765060292` completed successfully for `591d7de`, including Chromium installation and browser E2E |
-| Local verification | 69/69 unit/integration tests and 1/1 Playwright Chromium E2E passed; coverage 92.52% statements, 83.73% branches, 88.23% functions, and 92.52% lines |
+| Local verification | 70/70 unit/integration tests and 1/1 Playwright Chromium E2E passed; coverage 92.34% statements, 81.46% branches, 88.48% functions, and 92.34% lines |
 | Dependency audit | `npm audit --audit-level=high` reported 0 vulnerabilities |
 | Deployment configuration | `docker compose --env-file .env.example config --quiet` passed |
 | Completed instance | healthy; `completed | 6 tasks | 38 events | 6 runs | 0 session evidence | 14 deliveries`; historical events are not backfilled |
@@ -78,18 +78,18 @@ Status meanings:
 | --- | --- | --- | --- |
 | 1 | Central Web/API application | Present + live | Workflow engine, policy resolver, GitHub verification, event log, dashboard, status lookup, and split/assign endpoint |
 | 2 | Schema, migrations, and seed data | Present + live | PostgreSQL snapshot/event/inbox storage and six-Account Northstar seed |
-| 3 | `team-workflow` Codex Skill | Present locally and project-local | Source is on the unpushed `codex/team-workflow-poc` branch at `f7c1d09` by design; rollout repository contains a discoverable `.agents/skills/team-workflow/` copy |
-| 4 | Deterministic CLI | Present + tested | Includes `status` and `split` in addition to the required owner/reviewer lifecycle |
+| 3 | `team-workflow` Codex Skill | Present locally and project-local | Source is on the unpushed `codex/team-workflow-poc` branch at `be4c098` by design; rollout repository contains a discoverable `.agents/skills/team-workflow/` copy |
+| 4 | Deterministic CLI | Present + tested | Includes `status`, `split`, and fail-closed Requirement evidence `audit` in addition to the required owner/reviewer lifecycle |
 | 5 | Container deployment | Present + live | Two isolated healthy application/database stacks on the control-plane host |
 | 6 | TLS Webhook edge | Present + live | Public edge forwards only `/webhooks/github` to the private control plane |
 | 7 | Sanitized Account examples | Present | Real rollout credentials remain server-side with mode `600` and are not copied into this report |
-| 8 | Automated tests | Present | 69 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer flow, two Workstations, distinct Agent Sessions, child decomposition, role lanes, dependency blocking, verified evidence, guidance versions, events, and metrics. CI retains the HTML report, screenshot, and trace on failure. |
+| 8 | Automated tests | Present | 70 unit/integration tests plus one maintained Playwright Chromium E2E cover the scoped owner/reviewer flow, two Workstations, distinct Agent Sessions, child decomposition, role lanes, dependency blocking, verified evidence, Requirement auditing, guidance versions, events, and metrics. CI retains the HTML report, screenshot, and trace on failure. |
 | 9 | Demonstration runbook | Present | `RUNBOOK.md` covers the technical demo; `ROLLOUT.md` covers the strict two-workstation proof |
 | 10 | Acceptance report | Present | `ACCEPTANCE.md`, the test deliverable, and this stricter audit map evidence to AC-01 through AC-18 |
 
 ## Capabilities added after the completed six-item run
 
-These are in GitHub `main`, CI, and both deployed instances:
+These are maintained on GitHub `main` and in CI. Server-side items are also present in both deployed instances; project-local CLI behavior ships through the repository Skill and does not require a control-plane image rebuild:
 
 1. Unified `GET /api/v1/status/:id` and CLI `status <requirement-or-work-item-id>`.
 2. Submission event envelopes with hierarchy, Role Assignment, Agent, Git, guidance versions, and snapshot hash.
@@ -100,6 +100,7 @@ These are in GitHub `main`, CI, and both deployed instances:
 7. A maintained Playwright Chromium E2E and CI gate that executes a scoped owner/reviewer flow and proves child-parent visibility on the dashboard.
 8. Idempotent `ActionRejected` persistence when authenticated `start` fails during Effective Guidance resolution, without changing the Work Item.
 9. Opaque local execution evidence on every CLI action: Account-bound Workstation IDs, fresh Agent Session IDs, cross-context conflict rejection, session-scoped retries, and dashboard counts derived from Activity Events.
+10. A read-only `audit <requirement-id>` CLI that emits sanitized JSON and deterministically verifies completion, integrated Work Items, Git evidence, merge SHAs, Agent Runs, five-scope guidance, lifecycle ordering, expected Accounts/Workstations, and a minimum Agent Session count; incomplete evidence exits with status 2.
 
 The rollout repository intentionally remains on its older application-feature baseline because its human Requirement is to implement the status capability through the workflow. The rollout control plane itself runs the current orchestration application.
 
@@ -121,6 +122,7 @@ Follow `ROLLOUT.md` without resetting either database:
 5. Complete, review, and merge `TST-001`; then complete, review, and merge `TST-002`.
 6. Preserve session-level facts without prompts: Account, Work Item, Agent Run ID, guidance snapshot, branch, commit, PR, Artifact paths, review result, merge SHA, and ordered events.
 7. Confirm the rollout dashboard shows six Integrated Work Items, `REQ-001` Completed, six Accounts, exactly two Workstations, and at least twelve distinct Owner/Reviewer Agent Sessions while the completed instance fingerprint remains unchanged.
-8. Attach the two-workstation evidence to the acceptance report. Only then mark AC-15 and the overall completion definition complete.
+8. Run the `ROLLOUT.md` Requirement audit with the six expected Accounts, exactly two Workstations, and at least twelve Sessions; commit its `passed: true` JSON output as a test Artifact.
+9. Attach the two-workstation evidence to the acceptance report. Only then mark AC-15 and the overall completion definition complete.
 
 Until that run finishes, the accurate project status is: **technical PoC ready; strict multi-workstation human acceptance pending**.

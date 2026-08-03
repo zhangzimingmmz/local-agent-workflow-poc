@@ -109,6 +109,18 @@ The rollout passes when the dashboard shows all six Work Items as Integrated and
 - at least one safe negative check, such as self-review rejection or duplicate command replay;
 - executed tests, coverage, and a conclusion that is separate from raw observations.
 
+After all six merges have reconciled, run the deterministic Requirement audit from a configured Account session and preserve its output as a test Artifact:
+
+```bash
+node ".agents/skills/team-workflow/scripts/workflow.mjs" audit REQ-001 \
+  --accounts alice,bob,carol,dave,erin,frank \
+  --workstations workstation-a,workstation-b \
+  --min-sessions 12 \
+  > "deliverables/rollout/test/requirement-audit.json"
+```
+
+The command exits with status `2` and still emits JSON when evidence is incomplete. A passing Artifact must contain `"passed": true`; do not edit a failed output to manufacture acceptance.
+
 Do not reset the rollout database to repair a failed acceptance. Reject the affected Submission with a recovery note, fix it on the same Work Item branch, and resubmit current Git evidence.
 
 ## Operator verification

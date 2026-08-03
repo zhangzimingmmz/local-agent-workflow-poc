@@ -214,7 +214,10 @@ policy <work-item-id>
 submit <work-item-id> --pr <url> --artifact <kind:path>
 review <work-item-id> --accept|--reject --note <text>
 status <requirement-or-work-item-id>
+audit <requirement-id> --accounts <id,id> --workstations <id,id> --min-sessions <count>
 ```
+
+The read-only `audit` command emits a sanitized, versionable JSON summary and fails closed when completion, integration, verified Git evidence, five-scope guidance, ordered lifecycle events, expected Accounts or Workstations, or the minimum fresh Agent Session count is missing.
 
 The first version uses explicit Skill invocation because claim, submit, and review mutate shared state.
 
